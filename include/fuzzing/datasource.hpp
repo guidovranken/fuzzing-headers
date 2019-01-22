@@ -45,6 +45,8 @@ class Data {
                 s = static_cast<char*>(malloc(size));
                 memcpy(s, data, size);
             } else {
+                /* An invalid, non-null pointer to test if the target derefences it
+                 * if size == 0 */
                 s = (char*)0x12;
             }
             _size = size;
@@ -75,10 +77,7 @@ class Datasource
         Datasource(const uint8_t* _data, const size_t _size);
 
         template<class T> T Get(void);
-        uint8_t GetUint8(void);
-        uint16_t GetUint16(void);
-        uint32_t GetUint32(void);
-        uint64_t GetUint64(void);
+        uint16_t GetChoice(void);
         std::vector<uint8_t> GetSomeData(const size_t max = 0);
         String GetString(void);
         Data GetData(void);
@@ -148,39 +147,16 @@ template <> std::vector<std::string> Datasource::Get<std::vector<std::string>>(v
     return ret;
 }
 
-uint8_t Datasource::GetUint8(void)
+uint16_t Datasource::GetChoice(void)
 {
-    uint8_t ret = 0;
-    copyAndAdvance(&ret, sizeof(ret));
-    return ret;
-}
-
-uint16_t Datasource::GetUint16(void)
-{
-    uint16_t ret = 0;
-    copyAndAdvance(&ret, sizeof(ret));
-    return ret;
-}
-
-uint32_t Datasource::GetUint32(void)
-{
-    uint16_t ret = 0;
-    copyAndAdvance(&ret, sizeof(ret));
-    return ret;
-}
-
-uint64_t Datasource::GetUint64(void)
-{
-    uint16_t ret = 0;
-    copyAndAdvance(&ret, sizeof(ret));
-    return ret;
+    return Get<uint16_t>();
 }
 
 std::vector<uint8_t> Datasource::GetSomeData(const size_t max)
 {
     std::vector<uint8_t> ret;
 
-    uint16_t size = GetUint16();
+    uint16_t size = Get<uint16_t>();
 
     if ( max > 0 && size > max ) {
         size = max;
