@@ -6,6 +6,7 @@ class NlohmannJsonManipulator : public fuzzing::JsonManipulator<nlohmann::json> 
         NlohmannJsonManipulator(void) : fuzzing::JsonManipulator<nlohmann::json>() { }
         ~NlohmannJsonManipulator() override = default;
 
+        /* Conversion */
         std::optional<nlohmann::json> StringToObject(const std::string& input) override {
             return nlohmann::json::parse(input);
         }
@@ -14,6 +15,7 @@ class NlohmannJsonManipulator : public fuzzing::JsonManipulator<nlohmann::json> 
             return input.dump();
         }
 
+        /* Introspection */
         std::optional<bool> IsEqual(const nlohmann::json& input1, const nlohmann::json& input2) override {
             return input1 == input2;
         }
@@ -32,12 +34,6 @@ class NlohmannJsonManipulator : public fuzzing::JsonManipulator<nlohmann::json> 
 
         std::optional<bool> IsEqualOrLessThan(const nlohmann::json& input1, const nlohmann::json& input2) override {
             return input1 <= input2;
-        }
-
-        bool Clear(nlohmann::json& input) override {
-            input.clear();
-
-            return true;
         }
 
         std::optional<bool> IsObject(const nlohmann::json& input) override {
@@ -60,10 +56,6 @@ class NlohmannJsonManipulator : public fuzzing::JsonManipulator<nlohmann::json> 
             return input.is_boolean();
         }
 
-        std::optional<uint64_t> GetArraySize(const nlohmann::json& input) override {
-            return input.size();
-        }
-
         std::optional<std::vector<std::string>> GetMemberNames(const nlohmann::json& input) override {
             std::vector<std::string> ret;
 
@@ -74,8 +66,82 @@ class NlohmannJsonManipulator : public fuzzing::JsonManipulator<nlohmann::json> 
             return ret;
         }
 
+        std::optional<uint64_t> GetArraySize(const nlohmann::json& input) override {
+            return input.size();
+        }
+
+        std::optional<double> GetDouble(nlohmann::json& input) override {
+            double ret = input;
+            return ret;
+        }
+
+        std::optional<int32_t> GetInt32(nlohmann::json& input) override {
+            int32_t ret = input;
+            return ret;
+        }
+
+        std::optional<int64_t> GetInt64(nlohmann::json& input) override {
+            int64_t ret = input;
+            return ret;
+        }
+
+        std::optional<bool> HasMember(const nlohmann::json& input, const std::string name) override {
+            return input.find(name) != input.end();
+        }
+
+        nlohmann::json& GetMemberReference(nlohmann::json& input, const std::string name) override {
+            return input[name];
+        }
+
+        nlohmann::json& GetMemberReference(nlohmann::json& input, const uint64_t index) override {
+            return input[index];
+        }
+
+        /* CRUD */
         std::optional<nlohmann::json> Copy(const nlohmann::json& input) override {
             return nlohmann::json(input);
+        }
+
+        bool SetKey(nlohmann::json& dest, const std::string key) override {
+            dest[key] = {};
+
+            return true;
+        }
+
+        bool SetDouble(nlohmann::json& dest, const double val) override {
+            dest = val;
+
+            return true;
+        }
+
+        bool SetInt32(nlohmann::json& dest, const int32_t val) override {
+            dest = val;
+
+            return true;
+        }
+
+        bool SetInt64(nlohmann::json& dest, const int64_t val) override {
+            dest = val;
+
+            return true;
+        }
+
+        bool Swap(nlohmann::json& input1, nlohmann::json& input2) override {
+            input1.swap(input2);
+
+            return true;
+        }
+
+        bool Clear(nlohmann::json& input) override {
+            input.clear();
+
+            return true;
+        }
+
+        bool Set(nlohmann::json& input1, const nlohmann::json& input2) override {
+            input1 = input2;
+
+            return true;
         }
 };
 
@@ -96,7 +162,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
     try {
         jsonTester->Test(ds);
+    } catch ( fuzzing::Datasource::OutOfData ) {
+    } catch ( nlohmann::detail::parse_error ) {
+    } catch ( nlohmann::detail::type_error ) {
     } catch ( ... ) { }
+
 
     return 0;
 }
