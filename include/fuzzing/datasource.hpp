@@ -2,6 +2,7 @@
 #define FUZZING_DATASOURCE_HPP
 
 #include <fuzzing/exception.hpp>
+#include <fuzzing/types.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -10,59 +11,6 @@
 #include <vector>
 
 namespace fuzzing {
-
-class String {
-    private:
-        char* s = nullptr;
-        size_t _size;
-    public:
-        String(const uint8_t* data, size_t size) {
-            s = static_cast<char*>(malloc(size+1));
-            if ( size > 0 ) {
-                memcpy(s, data, size);
-            }
-            s[size] = 0;
-            _size = size;
-        }
-        ~String() {
-            free(s);
-        }
-        char* data(void) {
-            return s;
-        }
-        size_t size(void) const {
-            return _size;
-        }
-};
-
-class Data {
-    private:
-        char* s = nullptr;
-        size_t _size;
-    public:
-        Data(const uint8_t* data, size_t size) {
-            if ( size > 0 ) {
-                s = static_cast<char*>(malloc(size));
-                memcpy(s, data, size);
-            } else {
-                /* An invalid, non-null pointer to test if the target derefences it
-                 * if size == 0 */
-                s = (char*)0x12;
-            }
-            _size = size;
-        }
-        ~Data() {
-            if ( _size > 0 ) {
-                free(s);
-            }
-        }
-        char* data(void) {
-            return s;
-        }
-        size_t size(void) const {
-            return _size;
-        }
-};
 
 class Datasource
 {
@@ -79,8 +27,8 @@ class Datasource
         template<class T> T Get(void);
         uint16_t GetChoice(void);
         std::vector<uint8_t> GetSomeData(const size_t max = 0);
-        String GetString(void);
-        Data GetData(void);
+        types::String<> GetString(void);
+        types::Data<> GetData(void);
         template <class T> std::vector<T> GetVector(void);
 
         class OutOfData : public fuzzing::Exception {
@@ -173,15 +121,15 @@ std::vector<uint8_t> Datasource::GetSomeData(const size_t max)
 }
 
 
-String Datasource::GetString(void) {
+types::String<> Datasource::GetString(void) {
     const auto data = GetSomeData();
-    String ret(data.data(), data.size());
+    types::String<> ret(data.data(), data.size());
     return ret;
 }
 
-Data Datasource::GetData(void) {
+types::Data<> Datasource::GetData(void) {
     const auto data = GetSomeData();
-    Data ret(data.data(), data.size());
+    types::Data<> ret(data.data(), data.size());
     return ret;
 }
 

@@ -11,7 +11,7 @@ namespace memory {
 extern "C" void *__asan_region_is_poisoned(const void *beg, size_t size);
 #endif
 
-void memory_test(const void* data, const size_t size)
+void memory_test_asan(const void* data, const size_t size)
 {
     (void)data;
     (void)size;
@@ -21,6 +21,12 @@ void memory_test(const void* data, const size_t size)
         abort();
     }
 #endif
+}
+
+void memory_test_msan(const void* data, const size_t size)
+{
+    (void)data;
+    (void)size;
 
 #if MSAN == 1
     FILE* fp = fopen("/dev/null", "wb");
@@ -30,6 +36,12 @@ void memory_test(const void* data, const size_t size)
     fwrite(data, size, 1, fp);
     fclose(fp);
 #endif
+}
+
+void memory_test(const void* data, const size_t size)
+{
+    memory_test_asan(data, size);
+    memory_test_msan(data, size);
 }
 
 template <class T>
