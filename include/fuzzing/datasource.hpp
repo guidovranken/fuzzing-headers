@@ -11,6 +11,7 @@
 #include <vector>
 
 namespace fuzzing {
+namespace datasource  {
 
 class Datasource
 {
@@ -144,6 +145,7 @@ std::vector<T> Datasource::GetVector(void) {
     return ret;
 }
 
+} /* namespace datasource */
 } /* namespace fuzzing */
 
 #endif

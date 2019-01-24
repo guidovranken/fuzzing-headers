@@ -10,10 +10,10 @@ namespace fuzzing {
 
 class SingleTest {
     private:
-        std::function<void(Datasource& ds)> fn;
+        std::function<void(datasource::Datasource& ds)> fn;
     public:
-        SingleTest(std::function<void(Datasource& ds)> fn) : fn(fn) { }
-        void Test(Datasource& ds) const {
+        SingleTest(std::function<void(datasource::Datasource& ds)> fn) : fn(fn) { }
+        void Test(datasource::Datasource& ds) const {
             fn(ds);
         }
 };
@@ -25,7 +25,7 @@ class Multitest {
 
     public:
         Multitest(std::initializer_list<SingleTest> tests) : tests{std::move(tests)}, numTests(this->tests.size()) {}
-        void Test(Datasource& ds) const {
+        void Test(datasource::Datasource& ds) const {
             const auto which = ds.Get<uint16_t>();
 
             if ( numTests == 0 ) {
@@ -40,7 +40,7 @@ class Multitest {
             tests[which].Test(ds);
         }
         
-        void Loop(Datasource& ds, const size_t numLoops) const {
+        void Loop(datasource::Datasource& ds, const size_t numLoops) const {
             for (size_t i = 0; i < numLoops; i++) {
                 Test(ds);
             }

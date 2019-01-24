@@ -158,11 +158,11 @@ extern "C" int LLVMFuzzerInitialize(int *_argc, char ***_argv) {
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-    fuzzing::Datasource ds(data, size);
+    fuzzing::datasource::Datasource ds(data, size);
 
     try {
         jsonTester->Test(ds);
-    } catch ( fuzzing::Datasource::OutOfData ) {
+    } catch ( fuzzing::datasource::Datasource::OutOfData ) {
     } catch ( nlohmann::detail::parse_error ) {
     } catch ( nlohmann::detail::type_error ) {
     } catch ( ... ) { }
