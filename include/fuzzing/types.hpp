@@ -11,35 +11,34 @@
 namespace fuzzing {
 namespace types {
 
-template <bool UseMSAN = false>
+template <typename CoreType, bool NullTerminated, bool UseMSAN = false>
 class Container {
     private:
-        uint8_t* InvalidAddress = (uint8_t*)0x12;
+        CoreType* InvalidAddress = (CoreType*)0x12;
 
-        void copy(const uint8_t* data, size_t size) {
+        void copy(const void* data, size_t size) {
             if ( size > 0 ) {
                 std::memcpy(_data, data, size);
             }
         }
 
-    protected:
-        uint8_t* _data = InvalidAddress;
+        CoreType* _data = InvalidAddress;
         size_t _size = 0;
 
         void allocate(size_t size) {
             if ( size > 0 ) {
-                _data = static_cast<uint8_t*>(malloc(size));
+                _data = static_cast<CoreType*>(malloc(size * sizeof(CoreType)));
             } else {
                 _data = InvalidAddress;
             }
         };
 
-        void allocate_and_copy(const uint8_t* data, size_t size) {
+        void allocate_and_copy(const void* data, size_t size) {
             allocate(size);
             copy(data, size);
         }
 
-        void allocate_plus_1_and_copy(const uint8_t* data, size_t size) {
+        void allocate_plus_1_and_copy(const void* data, size_t size) {
             allocate(size+1);
             copy(data, size);
         }
@@ -61,7 +60,7 @@ class Container {
         }
 
     public:
-        uint8_t* data(void) {
+        CoreType* data(void) {
             access_hook();
             return _data;
         }
@@ -73,57 +72,30 @@ class Container {
 
         Container(void) = default;
 
-        virtual ~Container(void) {
+        Container(const void* data, const size_t size) {
+            if ( NullTerminated == false ) {
+                allocate_and_copy(data, size);
+            } else {
+                allocate_plus_1_and_copy(data, size);
+                _data[size] = 0;
+            }
+
+            access_hook();
+        }
+
+        template<class T>
+        Container(const T& t) {
+            Container(t.data(), t.size());
+        }
+
+        ~Container(void) {
             this->free();
         }
 
-    
 };
 
-template <bool UseMSAN = false>
-class String : public Container<UseMSAN> {
-    using Container<UseMSAN>::_data;
-    using Container<UseMSAN>::_size;
-    using Container<UseMSAN>::allocate_plus_1_and_copy;
-    public:
-        String(const uint8_t* data, size_t size) : Container<UseMSAN>() {
-            _size = size + 1;
-            allocate_plus_1_and_copy(data, size);
-            _data[_size] = 0;
-        }
-
-        String(std::vector<uint8_t> v) : Container<UseMSAN>() {
-            _size = v.size() + 1;
-            allocate_plus_1_and_copy(v.data(), v.size());
-            _data[_size] = 0;
-        }
-
-        String(std::string s) : Container<UseMSAN>() {
-            _size = s.size() + 1;
-            allocate_plus_1_and_copy(s.data(), s.size());
-            _data[_size] = 0;
-        }
-
-        ~String() = default;
-
-        char* c_str(void) {
-            return static_cast<char*>(_data);
-        }
-};
-
-template <bool UseMSAN = false>
-class Data : public Container<UseMSAN> {
-    using Container<UseMSAN>::_data;
-    using Container<UseMSAN>::_size;
-    using Container<UseMSAN>::allocate_and_copy;
-    public:
-        Data(const uint8_t* data, size_t size) : Container<UseMSAN>() {
-            _size = size;
-            allocate_and_copy(data, _size);
-        }
-
-        ~Data() = default;
-};
+template <bool UseMSAN = false> using String = Container<char, true, UseMSAN>;
+template <bool UseMSAN = false> using Data = Container<uint8_t, false, UseMSAN>;
 
 } /* namespace types */
 } /* namespace fuzzing */
