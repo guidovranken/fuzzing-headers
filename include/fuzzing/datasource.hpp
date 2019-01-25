@@ -32,12 +32,12 @@ class Datasource
         types::Data<> GetData(void);
         template <class T> std::vector<T> GetVector(void);
 
-        class OutOfData : public fuzzing::Exception {
+        class OutOfData : public fuzzing::exception::FlowException {
             public:
                 OutOfData() = default;
         };
 
-        class DeserializationFailure : public fuzzing::Exception {
+        class DeserializationFailure : public fuzzing::exception::FlowException {
             public:
                 DeserializationFailure() = default;
         };

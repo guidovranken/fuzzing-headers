@@ -2,6 +2,7 @@
 #define FUZZING_JSON_HPP
 
 #include <fuzzing/datasource.hpp>
+#include <fuzzing/exception.hpp>
 #include <fuzzing/memory.hpp>
 #include <fuzzing/test.hpp>
 #include <fuzzing/truth.hpp>
@@ -276,6 +277,13 @@ class JsonManipulator {
 
 template <class ObjectType>
 class JsonTester : public SerializeTester<ObjectType, std::string> {
+    public:
+        using global_TargetException = exception::TargetException;
+        class TargetException : public global_TargetException {
+            public:
+                TargetException(const std::string reason) : global_TargetException(reason) { }
+        };
+
     private:
         ObjectType slots[2];
         const std::unique_ptr<Multitest> mt;
@@ -290,9 +298,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             }
 
             if ( res->first != res->second ) {
-                /* TODO throw */
-                abort();
-                return;
+                throw TargetException("Double conversion mismatch");
             }
         }
 
@@ -373,8 +379,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
 
                     const auto hasMember = jsonManipulator->HasMember(ret.get(), memberName);
                     if ( hasMember && *hasMember == false ) {
-                        /* TODO throw */
-                        abort();
+                        throw exception::LogicException("Member expected");
                     }
 
                     ret = jsonManipulator->GetMemberReference(std::ref(ret.get()), memberName);
@@ -417,8 +422,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             const auto EQLT = jsonManipulator->IsEqualOrLessThan(input1, input2);
 
             if ( fuzzing::truth::isValid( {EQ, GT, LT, EQGT, EQLT} ) == false ) {
-                /* TODO throw */
-                abort();
+                TargetException("Incongruent truth values");
             }
         }
 
@@ -437,15 +441,13 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             }
 
             if ( input != *copy ) {
-                /* TODO throw */
-                abort();
+                TargetException("Copy mismatch (1)");
             }
 
             const auto isEQ = jsonManipulator->IsEqual(input, *copy);
             if ( isEQ ) {
                 if ( !(*isEQ) ) {
-                    /* TODO throw */
-                    abort();
+                    TargetException("Copy mismatch (2)");
                 }
             }
         }
@@ -477,9 +479,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
 
             const auto hasMember = jsonManipulator->HasMember(dest, key);
             if ( hasMember && *hasMember == false ) {
-                /* Doesn't have the key that was just set */
-                /* TODO throw */
-                abort();
+                TargetException("Expected key");
             }
         }
 
@@ -505,14 +505,12 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             const auto isNumber = jsonManipulator->IsNumber(dest);
 
             if ( isNumber && *isNumber == false ) {
-                /* TODO throw */
-                abort();
+                TargetException("Expected type to be number");
             }
 
             const auto res = jsonManipulator->GetDouble(dest);
             if ( res && *res != val ) {
-                /* TODO throw */
-                abort();
+                TargetException("SetDouble mismatch");
             }
 
             testObjectConversion(dest);
@@ -530,14 +528,12 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             const auto isNumber = jsonManipulator->IsNumber(dest);
 
             if ( isNumber && *isNumber == false ) {
-                /* TODO throw */
-                abort();
+                TargetException("Expected type to be number");
             }
 
             const auto res = jsonManipulator->GetInt32(dest);
             if ( res && *res != val ) {
-                /* TODO throw */
-                abort();
+                TargetException("SetInt32 mismatch");
             }
 
             testObjectConversion(dest);
@@ -554,14 +550,12 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             const auto isNumber = jsonManipulator->IsNumber(dest);
 
             if ( isNumber && *isNumber == false ) {
-                /* TODO throw */
-                abort();
+                TargetException("Expected type to be number");
             }
 
             const auto res = jsonManipulator->GetInt64(dest);
             if ( res && *res != val ) {
-                /* TODO throw */
-                abort();
+                TargetException("SetInt64 mismatch");
             }
             testObjectConversion(dest);
         }
@@ -678,10 +672,10 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
         void Test(datasource::Datasource& ds, const size_t numLoops = 5) {
             /* Reset state */
             if ( jsonManipulator->Clear(slots[0]) == false ) {
-                abort();
+                throw exception::LogicException("Failed to clear JSON object slot");
             }
             if ( jsonManipulator->Clear(slots[1]) == false ) {
-                abort();
+                throw exception::LogicException("Failed to clear JSON object slot");
             }
 
             for (size_t i = 0; i < numLoops; i++) {
