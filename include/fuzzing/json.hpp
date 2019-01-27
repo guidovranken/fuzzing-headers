@@ -404,7 +404,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
 
         /* Start tests */
         void test_StringConversion(datasource::Datasource& ds) {
-            const auto input = ds.Get<std::string>( datasource::ID("JsonTester.test_StringConversion.Get<std::string> (input)") );
+            const auto input = ds.Get<std::string>( datasource::ID("content-type:json") );
             if ( ds.Get<bool>( datasource::ID("JsonTester.test_StringConversion.Get<bool> (method choice)") ) == true ) {
                 testStringConversion(input);
             } else {
@@ -454,7 +454,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
         }
 
         void action_ConvertInto(datasource::Datasource& ds) {
-            const auto input = ds.Get<std::string>( datasource::ID("JsonTester.test_ConvertInto.Get<std::string> (input)") );
+            const auto input = ds.Get<std::string>( datasource::ID("content-type:json") );
             const auto obj = jsonManipulator->StringToObject(input);
             if ( !obj ) {
                 return;
