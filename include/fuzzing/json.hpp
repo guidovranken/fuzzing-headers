@@ -52,6 +52,26 @@ class SerializeTester {
             return std::pair<OutType, OutType>(*outType1, *outType2);
         }
 
+        template <class InType, class IntermediateType, typename In2IntermediateFn, typename Intermediate2InFn>
+        std::optional<std::pair<InType, InType>> convert(const InType& input, In2IntermediateFn in2IntermediateFn, Intermediate2InFn intermediate2InFn) const {
+            const auto intermediateType = in2IntermediateFn(input);
+            if ( !intermediateType ) {
+                return {};
+            }
+
+            memory_test(*intermediateType);
+
+            const auto inType1 = intermediate2InFn(*intermediateType);
+
+            if ( !inType1 ) {
+                return {};
+            }
+
+            memory_test(*inType1);
+
+            return std::pair<InType, InType>(input, *inType1);
+        }
+
     protected:
         std::optional<std::pair<ObjectType, ObjectType>> binaryToObject2X(const BinaryType& input, BinaryToObjectFn binaryToObjectFn, ObjectToBinaryFn objectToBinaryFn) const {
             return convert2X<BinaryType, ObjectType>(input, binaryToObjectFn, objectToBinaryFn);
@@ -59,6 +79,14 @@ class SerializeTester {
 
         std::optional<std::pair<BinaryType, BinaryType>> objectToBinary2X(const ObjectType& input, ObjectToBinaryFn objectToBinaryFn, BinaryToObjectFn binaryToObjectFn) const {
             return convert2X<ObjectType, BinaryType>(input, objectToBinaryFn, binaryToObjectFn);
+        }
+
+        std::optional<std::pair<ObjectType, ObjectType>> objectToBinaryToObject(const ObjectType& input, ObjectToBinaryFn objectToBinaryFn, BinaryToObjectFn binaryToObjectFn) const {
+            return convert<ObjectType, BinaryType>(input, objectToBinaryFn, binaryToObjectFn);
+        }
+
+        std::optional<std::pair<BinaryType, BinaryType>> binaryToObjectToBinary(const BinaryType& input, BinaryToObjectFn binaryToObjectFn, ObjectToBinaryFn objectToBinaryFn) const {
+            return convert<BinaryType, ObjectType>(input, binaryToObjectFn, objectToBinaryFn);
         }
 
     public:
@@ -186,18 +214,9 @@ class JsonManipulator {
             return {};
         }
 
-        virtual ObjectType& GetMemberReference(ObjectType& input, const std::string name) {
-            (void)name;
-            /* TODO abort? */
-            return input;
-        }
+        virtual ObjectType& GetMemberReference(ObjectType& input, const std::string name) = 0;
 
-        virtual ObjectType& GetMemberReference(ObjectType& input, const uint64_t index) {
-            (void)index;
-            /* TODO abort? */
-            return input;
-        }
-
+        virtual ObjectType& GetMemberReference(ObjectType& input, const uint64_t index) = 0;
 
         /* CRUD */
         virtual std::optional<ObjectType> Copy(const ObjectType& input) {
@@ -262,11 +281,7 @@ class JsonManipulator {
             return false;
         }
 
-        virtual bool Clear(ObjectType& input) {
-            (void)input;
-
-            return false;
-        }
+        virtual bool Clear(ObjectType& input) = 0;
 
         virtual bool Set(ObjectType& input1, const ObjectType& input2) {
             (void)input1;
@@ -357,7 +372,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
         }
 
         ObjectType& getReference(datasource::Datasource& ds) {
-            const auto slotIdx = ds.GetChoice( datasource::ID("JsonTester.getReference.GetChoice") ) % 2;
+            const auto slotIdx = ds.GetChoice( datasource::ID("JsonTester.getReference.GetChoice (slot selection)") ) % 2;
             ObjectType& startRef = slots[slotIdx];
 
             auto ret = std::ref(startRef);
@@ -403,16 +418,16 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
         }
 
         /* Start tests */
-        void test_StringConversion(datasource::Datasource& ds) {
+        void op_StringConversion(datasource::Datasource& ds) {
             const auto input = ds.Get<std::string>( datasource::ID("content-type:json") );
-            if ( ds.Get<bool>( datasource::ID("JsonTester.test_StringConversion.Get<bool> (method choice)") ) == true ) {
+            if ( ds.Get<bool>( datasource::ID("JsonTester.op_StringConversion.Get<bool> (method choice)") ) == true ) {
                 testStringConversion(input);
             } else {
                 testStringConversionCStr(input);
             }
         }
 
-        void test_Comparison(datasource::Datasource& ds) {
+        void op_Comparison(datasource::Datasource& ds) {
             const auto& input1 = getReference(ds);
             const auto& input2 = getReference(ds);
 
@@ -427,13 +442,13 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             }
         }
 
-        void test_Clear(datasource::Datasource& ds) {
+        void op_Clear(datasource::Datasource& ds) {
             auto& input = getReference(ds);
 
             jsonManipulator->Clear(input);
         }
 
-        void test_Copy(datasource::Datasource& ds) {
+        void op_Copy(datasource::Datasource& ds) {
             const auto& input = getReference(ds);
 
             const auto copy = jsonManipulator->Copy(input);
@@ -453,7 +468,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             }
         }
 
-        void action_ConvertInto(datasource::Datasource& ds) {
+        void op_ConvertInto(datasource::Datasource& ds) {
             const auto input = ds.Get<std::string>( datasource::ID("content-type:json") );
             const auto obj = jsonManipulator->StringToObject(input);
             if ( !obj ) {
@@ -464,7 +479,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             jsonManipulator->Set(dest, *obj);
         }
 
-        void test_SetKey(datasource::Datasource& ds) {
+        void op_SetKey(datasource::Datasource& ds) {
             auto& dest = getReference(ds);
 
             /* Only attempt to set a key in an object */
@@ -472,7 +487,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
                 return;
             }
 
-            const auto key = ds.Get<std::string>( datasource::ID("JsonTester.test_SetKey.Get<std::string> (input)") );
+            const auto key = ds.Get<std::string>( datasource::ID("JsonTester.op_SetKey.Get<std::string> (input)") );
 
             if ( jsonManipulator->SetKey(dest, key) == false ) {
                 return;
@@ -484,16 +499,16 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             }
         }
 
-        void test_AssignRefToRef(datasource::Datasource& ds) {
+        void op_AssignRefToRef(datasource::Datasource& ds) {
             const auto& src = getReference(ds);
             auto& dest = getReference(ds);
 
             jsonManipulator->Set(dest, src);
         }
 
-        void test_SetDouble(datasource::Datasource& ds) {
+        void op_SetDouble(datasource::Datasource& ds) {
             auto& dest = getReference(ds);
-            const auto val = ds.Get<double>( datasource::ID("JsonTester.test_SetDouble.Get<double> (input)") );
+            const auto val = ds.Get<double>( datasource::ID("JsonTester.op_SetDouble.Get<double> (input)") );
 
             if ( std::isnan(val) == true ) {
                 return;
@@ -518,9 +533,9 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
         }
 
 
-        void test_SetInt32(datasource::Datasource& ds) {
+        void op_SetInt32(datasource::Datasource& ds) {
             auto& dest = getReference(ds);
-            const auto val = ds.Get<int32_t>( datasource::ID("JsonTester.test_SetDouble.Get<int32_t> (input)") );
+            const auto val = ds.Get<int32_t>( datasource::ID("JsonTester.op_SetDouble.Get<int32_t> (input)") );
 
             if ( jsonManipulator->SetInt32(dest, val) == false ) {
                 return;
@@ -540,9 +555,9 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             testObjectConversion(dest);
         }
 
-        void test_SetInt64(datasource::Datasource& ds) {
+        void op_SetInt64(datasource::Datasource& ds) {
             auto& dest = getReference(ds);
-            const auto val = ds.Get<int64_t>( datasource::ID("JsonTester.test_SetDouble.Get<int64_t> (input)") );
+            const auto val = ds.Get<int64_t>( datasource::ID("JsonTester.op_SetDouble.Get<int64_t> (input)") );
 
             if ( jsonManipulator->SetInt64(dest, val) == false ) {
                 return;
@@ -561,22 +576,24 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             testObjectConversion(dest);
         }
 
-        void test_ObjectConversion(datasource::Datasource& ds) {
+        void op_ObjectConversion(datasource::Datasource& ds) {
             const auto input = getReference(ds);
-            if ( ds.Get<bool>( datasource::ID("JsonTester.test_ObjectConversion.Get<bool> (method choice)") ) == true ) {
+            if ( ds.Get<bool>( datasource::ID("JsonTester.op_ObjectConversion.Get<bool> (method choice)") ) == true ) {
                 testObjectConversion(input);
             } else {
                 testObjectConversionCStr(input);
             }
         }
 
-        void test_Swap(datasource::Datasource& ds) {
+        void op_Swap(datasource::Datasource& ds) {
             auto& input1 = getReference(ds);
             auto& input2 = getReference(ds);
             jsonManipulator->Swap(input1, input2);
         }
 
         ObjectType& set(ObjectType& input, datasource::Datasource& ds) {
+            ObjectType& ret = input;
+
             if ( jsonManipulator->IsNull(input) == true ) {
             } else if ( jsonManipulator->IsObject(input) == true ) {
                 const auto key = ds.Get<std::string>();
@@ -596,6 +613,8 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
                 const auto val = ds.Get<bool>( datasource::ID("JsonTester.set.Get<bool> (input)") );
                 /* jsonManipulator->SetBoolean(val); */
             }
+
+            return ret;
         }
 
         void construct(datasource::Datasource& ds) {
@@ -605,8 +624,8 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             while ( ds.Get<bool>( datasource::ID("JsonTester.construct.Get<bool> (decide to halt)") ) == true ) {
                 ObjectType& curRef = nodes[ds.Get<uint16_t>( datasource::ID("JsonTester.construct.Get<uint16_t> (node selection)") ) % nodes.size()];
 
-                const auto action = ds.GetChoice( datasource::ID("JsonTester.construct.Get<bool> (method choice)") );
-                switch ( action ) {
+                const auto op = ds.GetChoice( datasource::ID("JsonTester.construct.Get<bool> (method choice)") );
+                switch ( op ) {
                     case    0:
                         {
                             /* jsonManipulator->SetNull */
@@ -652,18 +671,18 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             mt(
                 new Multitest(
                     {
-                      SingleTest(std::bind(&JsonTester::test_StringConversion, this, std::placeholders::_1)),
-                      SingleTest(std::bind(&JsonTester::test_Comparison, this, std::placeholders::_1)),
-                      SingleTest(std::bind(&JsonTester::test_Clear, this, std::placeholders::_1)),
-                      SingleTest(std::bind(&JsonTester::test_Copy, this, std::placeholders::_1)),
-                      SingleTest(std::bind(&JsonTester::action_ConvertInto, this, std::placeholders::_1)),
-                      SingleTest(std::bind(&JsonTester::test_SetKey, this, std::placeholders::_1)),
-                      SingleTest(std::bind(&JsonTester::test_AssignRefToRef, this, std::placeholders::_1)),
-                      SingleTest(std::bind(&JsonTester::test_SetDouble, this, std::placeholders::_1)),
-                      SingleTest(std::bind(&JsonTester::test_SetInt32, this, std::placeholders::_1)),
-                      SingleTest(std::bind(&JsonTester::test_ObjectConversion, this, std::placeholders::_1)),
-                      SingleTest(std::bind(&JsonTester::test_SetInt64, this, std::placeholders::_1)),
-                      SingleTest(std::bind(&JsonTester::test_Swap, this, std::placeholders::_1)),
+                      SingleTest(std::bind(&JsonTester::op_StringConversion, this, std::placeholders::_1)),
+                      SingleTest(std::bind(&JsonTester::op_Comparison, this, std::placeholders::_1)),
+                      SingleTest(std::bind(&JsonTester::op_Clear, this, std::placeholders::_1)),
+                      SingleTest(std::bind(&JsonTester::op_Copy, this, std::placeholders::_1)),
+                      SingleTest(std::bind(&JsonTester::op_ConvertInto, this, std::placeholders::_1)),
+                      SingleTest(std::bind(&JsonTester::op_SetKey, this, std::placeholders::_1)),
+                      SingleTest(std::bind(&JsonTester::op_AssignRefToRef, this, std::placeholders::_1)),
+                      SingleTest(std::bind(&JsonTester::op_SetDouble, this, std::placeholders::_1)),
+                      SingleTest(std::bind(&JsonTester::op_SetInt32, this, std::placeholders::_1)),
+                      SingleTest(std::bind(&JsonTester::op_ObjectConversion, this, std::placeholders::_1)),
+                      SingleTest(std::bind(&JsonTester::op_SetInt64, this, std::placeholders::_1)),
+                      SingleTest(std::bind(&JsonTester::op_Swap, this, std::placeholders::_1)),
                     },
                     datasource::ID("JsonTester.Multitest")
                 )
