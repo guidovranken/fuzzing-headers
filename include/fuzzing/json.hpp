@@ -1,7 +1,8 @@
 #ifndef FUZZING_JSON_HPP
 #define FUZZING_JSON_HPP
 
-#include <fuzzing/datasource.hpp>
+#include <fuzzing/datasource/datasource.hpp>
+#include <fuzzing/datasource/id.hpp>
 #include <fuzzing/exception.hpp>
 #include <fuzzing/memory.hpp>
 #include <fuzzing/test.hpp>
@@ -356,13 +357,13 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
         }
 
         ObjectType& getReference(datasource::Datasource& ds) {
-            const auto slotIdx = ds.GetChoice() % 2;
+            const auto slotIdx = ds.GetChoice( datasource::ID("JsonTester.getReference.GetChoice") ) % 2;
             ObjectType& startRef = slots[slotIdx];
 
             auto ret = std::ref(startRef);
 
             while ( true ) {
-                if ( ds.Get<bool>() == true ) {
+                if ( ds.Get<bool>( datasource::ID("JsonTester.getReference.Get<bool> (decide to halt)") ) == true ) {
                     break;
                 }
                 const auto isObject = jsonManipulator->IsObject(ret.get());
@@ -374,7 +375,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
                         break;
                     }
 
-                    const uint64_t whichMember = ds.Get<uint64_t>() % objectSize;
+                    const uint64_t whichMember = ds.Get<uint64_t>( datasource::ID("JsonTester.getReference.Get<uint64_t> (get member index)") ) % objectSize;
                     const auto memberName = (*memberNames)[whichMember];
 
                     const auto hasMember = jsonManipulator->HasMember(ret.get(), memberName);
@@ -390,7 +391,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
                         if ( !arraySize || *arraySize == 0 ) {
                             break;
                         }
-                        const uint64_t index = ds.Get<uint64_t>() % *arraySize;
+                        const uint64_t index = ds.Get<uint64_t>( datasource::ID("JsonTester.getReference.Get<uint64_t> (get array index)") ) % *arraySize;
 
                         ret = jsonManipulator->GetMemberReference(std::ref(ret.get()), index);
                     } else {
@@ -403,8 +404,8 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
 
         /* Start tests */
         void test_StringConversion(datasource::Datasource& ds) {
-            const auto input = ds.Get<std::string>();
-            if ( ds.Get<bool>() == true ) {
+            const auto input = ds.Get<std::string>( datasource::ID("JsonTester.test_StringConversion.Get<std::string> (input)") );
+            if ( ds.Get<bool>( datasource::ID("JsonTester.test_StringConversion.Get<bool> (method choice)") ) == true ) {
                 testStringConversion(input);
             } else {
                 testStringConversionCStr(input);
@@ -453,7 +454,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
         }
 
         void action_ConvertInto(datasource::Datasource& ds) {
-            const auto input = ds.Get<std::string>();
+            const auto input = ds.Get<std::string>( datasource::ID("JsonTester.test_ConvertInto.Get<std::string> (input)") );
             const auto obj = jsonManipulator->StringToObject(input);
             if ( !obj ) {
                 return;
@@ -471,7 +472,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
                 return;
             }
 
-            const auto key = ds.Get<std::string>();
+            const auto key = ds.Get<std::string>( datasource::ID("JsonTester.test_SetKey.Get<std::string> (input)") );
 
             if ( jsonManipulator->SetKey(dest, key) == false ) {
                 return;
@@ -492,7 +493,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
 
         void test_SetDouble(datasource::Datasource& ds) {
             auto& dest = getReference(ds);
-            const auto val = ds.Get<double>();
+            const auto val = ds.Get<double>( datasource::ID("JsonTester.test_SetDouble.Get<double> (input)") );
 
             if ( std::isnan(val) == true ) {
                 return;
@@ -519,7 +520,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
 
         void test_SetInt32(datasource::Datasource& ds) {
             auto& dest = getReference(ds);
-            const auto val = ds.Get<int32_t>();
+            const auto val = ds.Get<int32_t>( datasource::ID("JsonTester.test_SetDouble.Get<int32_t> (input)") );
 
             if ( jsonManipulator->SetInt32(dest, val) == false ) {
                 return;
@@ -541,7 +542,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
 
         void test_SetInt64(datasource::Datasource& ds) {
             auto& dest = getReference(ds);
-            const auto val = ds.Get<int64_t>();
+            const auto val = ds.Get<int64_t>( datasource::ID("JsonTester.test_SetDouble.Get<int64_t> (input)") );
 
             if ( jsonManipulator->SetInt64(dest, val) == false ) {
                 return;
@@ -562,7 +563,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
 
         void test_ObjectConversion(datasource::Datasource& ds) {
             const auto input = getReference(ds);
-            if ( ds.Get<bool>() == true ) {
+            if ( ds.Get<bool>( datasource::ID("JsonTester.test_ObjectConversion.Get<bool> (method choice)") ) == true ) {
                 testObjectConversion(input);
             } else {
                 testObjectConversionCStr(input);
@@ -592,7 +593,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             } else if ( jsonManipulator->IsNumber(input) == true ) {
                 /* setNumber(input, ds); */
             } else if ( jsonManipulator->IsBoolean(input) == true ) {
-                const auto val = ds.Get<bool>();
+                const auto val = ds.Get<bool>( datasource::ID("JsonTester.set.Get<bool> (input)") );
                 /* jsonManipulator->SetBoolean(val); */
             }
         }
@@ -601,10 +602,10 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             ObjectType root;
             ObjectType& rootRef = root;
             std::set<ObjectType&> nodes{rootRef};
-            while ( ds.Get<bool>() == true ) {
-                ObjectType& curRef = nodes[ds.Get<uint16_t>() % nodes.size()];
+            while ( ds.Get<bool>( datasource::ID("JsonTester.construct.Get<bool> (decide to halt)") ) == true ) {
+                ObjectType& curRef = nodes[ds.Get<uint16_t>( datasource::ID("JsonTester.construct.Get<uint16_t> (node selection)") ) % nodes.size()];
 
-                const auto action = ds.GetChoice();
+                const auto action = ds.GetChoice( datasource::ID("JsonTester.construct.Get<bool> (method choice)") );
                 switch ( action ) {
                     case    0:
                         {
@@ -663,7 +664,8 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
                       SingleTest(std::bind(&JsonTester::test_ObjectConversion, this, std::placeholders::_1)),
                       SingleTest(std::bind(&JsonTester::test_SetInt64, this, std::placeholders::_1)),
                       SingleTest(std::bind(&JsonTester::test_Swap, this, std::placeholders::_1)),
-                    }
+                    },
+                    datasource::ID("JsonTester.Multitest")
                 )
             ),
             jsonManipulator(std::move(jsonManipulator))

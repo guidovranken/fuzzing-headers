@@ -1,7 +1,7 @@
 #ifndef FUZZING_TEST_HPP
 #define FUZZING_TEST_HPP
 
-#include <fuzzing/datasource.hpp>
+#include <fuzzing/datasource/datasource.hpp>
 #include <fuzzing/test.hpp>
 #include <functional>
 #include <vector>
@@ -22,11 +22,12 @@ class Multitest {
     private:
         std::vector<SingleTest> tests;
         const size_t numTests;
+        const uint64_t id;
 
     public:
-        Multitest(std::initializer_list<SingleTest> tests) : tests{std::move(tests)}, numTests(this->tests.size()) {}
+        Multitest(std::initializer_list<SingleTest> tests, const uint64_t id = 0) : tests{std::move(tests)}, numTests(this->tests.size()), id(id) {}
         void Test(datasource::Datasource& ds) const {
-            const auto which = ds.Get<uint16_t>();
+            const auto which = ds.Get<uint16_t>(id);
 
             if ( numTests == 0 ) {
                 /* Abort ? */
