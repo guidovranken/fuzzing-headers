@@ -1,9 +1,9 @@
-#include <fuzzing/json.hpp>
+#include <fuzzing/testers/serialize/json.hpp>
 #include "json.hpp"
 
-class NlohmannJsonManipulator : public fuzzing::JsonManipulator<nlohmann::json> {
+class NlohmannJsonManipulator : public fuzzing::testers::serialize::JsonManipulator<nlohmann::json> {
     public:
-        NlohmannJsonManipulator(void) : fuzzing::JsonManipulator<nlohmann::json>() { }
+        NlohmannJsonManipulator(void) : fuzzing::testers::serialize::JsonManipulator<nlohmann::json>() { }
         ~NlohmannJsonManipulator() override = default;
 
         /* Conversion */
@@ -145,13 +145,13 @@ class NlohmannJsonManipulator : public fuzzing::JsonManipulator<nlohmann::json> 
         }
 };
 
-std::unique_ptr<fuzzing::JsonTester<nlohmann::json>> jsonTester;
+std::unique_ptr<fuzzing::testers::serialize::JsonTester<nlohmann::json>> jsonTester;
 
 extern "C" int LLVMFuzzerInitialize(int *_argc, char ***_argv) {
     (void)_argc;
     (void)_argv;
 
-    jsonTester = std::make_unique<fuzzing::JsonTester<nlohmann::json>>( std::make_unique<NlohmannJsonManipulator>() );
+    jsonTester = std::make_unique<fuzzing::testers::serialize::JsonTester<nlohmann::json>>( std::make_unique<NlohmannJsonManipulator>() );
 
     return 0;
 }
