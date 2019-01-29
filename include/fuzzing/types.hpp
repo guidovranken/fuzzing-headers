@@ -52,7 +52,7 @@ class Container {
         void free(void) {
             access_hook();
 
-            if ( _size > 0 ) {
+            if ( _data != InvalidAddress ) {
                 std::free(_data);
                 _data = InvalidAddress;
                 _size = 0;
