@@ -7,6 +7,7 @@
 namespace fuzzing {
 namespace memory {
 
+#ifndef FUZZING_HEADERS_NO_IMPL
 #if ASAN == 1
 extern "C" void *__asan_region_is_poisoned(const void *beg, size_t size);
 #endif
@@ -59,6 +60,8 @@ void memory_test(const std::string& s)
     memory_test(s.data(), s.size());
 #endif
 }
+
+#endif
 
 } /* namespace memory */
 } /* namespace fuzzing */

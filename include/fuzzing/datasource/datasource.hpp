@@ -40,6 +40,7 @@ class Base
         };
 };
 
+#ifndef FUZZING_HEADERS_NO_IMPL
 template<class T> T Base::Get(const uint64_t id)
 {
     T ret;
@@ -156,6 +157,8 @@ void Datasource::copyAndAdvance(void* dest, const size_t size, const uint64_t id
     idx += size;
     left -= size;
 }
+
+#endif
 
 } /* namespace datasource */
 } /* namespace fuzzing */

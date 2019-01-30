@@ -16,14 +16,15 @@ class Container {
     private:
         CoreType* InvalidAddress = (CoreType*)0x12;
 
+        CoreType* _data = InvalidAddress;
+        size_t _size = 0;
+
+#ifndef FUZZING_HEADERS_NO_IMPL
         void copy(const void* data, size_t size) {
             if ( size > 0 ) {
                 std::memcpy(_data, data, size);
             }
         }
-
-        CoreType* _data = InvalidAddress;
-        size_t _size = 0;
 
         void allocate(size_t size) {
             if ( size > 0 ) {
@@ -58,8 +59,10 @@ class Container {
                 _size = 0;
             }
         }
+#endif
 
     public:
+#ifndef FUZZING_HEADERS_NO_IMPL
         CoreType* data(void) {
             access_hook();
             return _data;
@@ -69,10 +72,17 @@ class Container {
             access_hook();
             return _size;
         }
+#endif
 
-        Container(void) = default;
+        Container(void)
+#ifndef FUZZING_HEADERS_NO_IMPL
+        = default
+#endif
+        ;
 
-        Container(const void* data, const size_t size) {
+        Container(const void* data, const size_t size)
+#ifndef FUZZING_HEADERS_NO_IMPL
+        {
             if ( NullTerminated == false ) {
                 allocate_and_copy(data, size);
             } else {
@@ -82,15 +92,25 @@ class Container {
 
             access_hook();
         }
+#endif
+        ;
 
         template<class T>
-        Container(const T& t) {
+        Container(const T& t)
+#ifndef FUZZING_HEADERS_NO_IMPL
+        {
             Container(t.data(), t.size());
         }
+#endif
+        ;
 
-        ~Container(void) {
+        ~Container(void)
+#ifndef FUZZING_HEADERS_NO_IMPL
+        {
             this->free();
         }
+#endif
+        ;
 
 };
 
