@@ -16,6 +16,7 @@ class DifferentialTarget {
     public:
         DifferentialTarget(void) = default;
         virtual ~DifferentialTarget(void) = default;
+        virtual void Start(void) = 0;
         virtual std::optional<UniversalOutput> Run(const UniversalInput& input) const = 0;
 };
 
@@ -57,6 +58,11 @@ class DifferentialTester {
             std::vector<std::optional<UniversalOutput>> results(targets.size());
 
             const auto input = DSToUniversalInput(ds);
+
+            for (size_t i = 0; i < targets.size(); i++) {
+                auto& curTarget = targets[i];
+                curTarget->Start();
+            }
 
             size_t numFailed = 0;
             for (size_t i = 0; i < targets.size(); i++) {

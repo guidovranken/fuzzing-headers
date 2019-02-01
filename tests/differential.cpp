@@ -16,11 +16,13 @@ class TestDifferentialTester : public DifferentialTester<std::string, std::strin
 
 class TestDifferentialTargetOne : public DifferentialTarget<std::string, std::string> {
     public:
+        void Start(void) override { };
         std::optional<std::string> Run(const std::string& input) const override { return "One"; }
 };
 
 class TestDifferentialTargetTwo : public DifferentialTarget<std::string, std::string> {
     public:
+        void Start(void) override { };
         std::optional<std::string> Run(const std::string& input) const override { return "Two"; }
 };
 
