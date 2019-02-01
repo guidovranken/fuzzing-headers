@@ -13,13 +13,10 @@ namespace differential {
 
 template <typename UniversalInput, typename UniversalOutput>
 class DifferentialTarget {
-    private:
-        std::function<std::optional<UniversalOutput>(const UniversalInput&)> fn;
     public:
-        DifferentialTarget(std::function<std::optional<UniversalOutput>(const UniversalInput&)> fn) : fn(fn) { }
-        std::optional<UniversalOutput> Run(const UniversalInput& input) const {
-            return fn(input);
-        }
+        DifferentialTarget(void) = default;
+        virtual ~DifferentialTarget(void) = default;
+        virtual std::optional<UniversalOutput> Run(const UniversalInput& input) const = 0;
 };
 
 
@@ -28,7 +25,7 @@ class DifferentialTester {
     protected:
         virtual UniversalInput DSToUniversalInput(datasource::Datasource& ds) const = 0;
     private:
-        std::vector<DifferentialTarget<UniversalInput, UniversalOutput>> targets;
+        std::vector<std::shared_ptr<DifferentialTarget<UniversalInput, UniversalOutput>>> targets;
 
         bool compare(const std::vector<std::optional<UniversalOutput>> results) {
             std::vector<size_t> success;
@@ -54,9 +51,8 @@ class DifferentialTester {
 
             return true;
         }
-
     public:
-        DifferentialTester(std::initializer_list<DifferentialTarget<UniversalInput, UniversalOutput>> targets) : targets{std::move(targets)} {}
+        DifferentialTester(std::initializer_list<std::shared_ptr<DifferentialTarget<UniversalInput, UniversalOutput>>> targets) : targets(targets) { };
         bool Run(datasource::Datasource& ds) {
             std::vector<std::optional<UniversalOutput>> results(targets.size());
 
@@ -65,7 +61,7 @@ class DifferentialTester {
             size_t numFailed = 0;
             for (size_t i = 0; i < targets.size(); i++) {
                 auto& curTarget = targets[i];
-                results[i] = curTarget.Run(input);
+                results[i] = curTarget->Run(input);
                 
                 numFailed += results[i] == std::nullopt ? 1 : 0;
             }

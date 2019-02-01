@@ -11,22 +11,27 @@ class TestDifferentialTester : public DifferentialTester<std::string, std::strin
             return ds.Get<std::string>();
         }
     public:
-        TestDifferentialTester(std::initializer_list<DifferentialTarget<std::string, std::string>> targets) : DifferentialTester(targets) { }
+        TestDifferentialTester(std::initializer_list<std::shared_ptr<DifferentialTarget<std::string, std::string>>> targets) : DifferentialTester(targets) { }
 };
 
-std::optional<std::string> TargetOne(const std::string& input) {
-    return "One";
-}
+class TestDifferentialTargetOne : public DifferentialTarget<std::string, std::string> {
+    public:
+        std::optional<std::string> Run(const std::string& input) const override { return "One"; }
+};
 
-std::optional<std::string> TargetTwo(const std::string& input) {
-    return "Two";
-}
+class TestDifferentialTargetTwo : public DifferentialTarget<std::string, std::string> {
+    public:
+        std::optional<std::string> Run(const std::string& input) const override { return "Two"; }
+};
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     Datasource ds(data, size);
 
-    TestDifferentialTester diff( {DifferentialTarget<std::string, std::string>(TargetOne), DifferentialTarget<std::string, std::string>(TargetTwo)} );
+    TestDifferentialTester diff({
+            std::make_shared<TestDifferentialTargetOne>(),
+            std::make_shared<TestDifferentialTargetTwo>(),
+            });
     try {
         diff.Run(ds);
     } catch ( fuzzing::datasource::Datasource::OutOfData ) { }
