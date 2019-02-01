@@ -24,9 +24,7 @@ class Base
 
         template<class T> T Get(const uint64_t id = 0);
         uint16_t GetChoice(const uint64_t id = 0);
-        std::vector<uint8_t> GetSomeData(const uint64_t id, const size_t max = 0);
-        types::String<> GetString(const uint64_t id = 0);
-        types::Data<> GetData(const uint64_t id = 0);
+        std::vector<uint8_t> GetData(const uint64_t id, const size_t max = 0);
         template <class T> std::vector<T> GetVector(const uint64_t id = 0);
 
         class OutOfData : public fuzzing::exception::FlowException {
@@ -79,7 +77,7 @@ uint16_t Base::GetChoice(const uint64_t id)
     return Get<uint16_t>(id);
 }
 
-std::vector<uint8_t> Base::GetSomeData(const uint64_t id, const size_t max)
+std::vector<uint8_t> Base::GetData(const uint64_t id, const size_t max)
 {
     std::vector<uint8_t> ret;
 
@@ -100,14 +98,14 @@ std::vector<uint8_t> Base::GetSomeData(const uint64_t id, const size_t max)
 }
 
 
-types::String<> Base::GetString(const uint64_t id) {
-    const auto data = GetSomeData(id);
+template <> types::String<> Base::Get<types::String<>>(const uint64_t id) {
+    const auto data = GetData(id);
     types::String<> ret(data.data(), data.size());
     return ret;
 }
 
-types::Data<> Base::GetData(const uint64_t id) {
-    const auto data = GetSomeData(id);
+template <> types::Data<> Base::Get<types::Data<>>(const uint64_t id) {
+    const auto data = GetData(id);
     types::Data<> ret(data.data(), data.size());
     return ret;
 }
