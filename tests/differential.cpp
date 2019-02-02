@@ -3,14 +3,14 @@
 
 using fuzzing::datasource::Datasource;
 using fuzzing::testers::differential::UniversalFromGeneric;
-using fuzzing::testers::differential::DifferentialTester;
+using fuzzing::testers::differential::DifferentialTesterSingle;
 using fuzzing::testers::differential::DifferentialTarget;
 
 using TestUniversalInput = UniversalFromGeneric<std::string>;
 using TestUniversalOutput = UniversalFromGeneric<std::string>;
 
 template <class... Targets>
-using TestDifferentialTester = DifferentialTester<TestUniversalInput, TestUniversalOutput, Targets...>;
+using TestDifferentialTester = DifferentialTesterSingle<TestUniversalInput, TestUniversalOutput, Targets...>;
 
 class TestDifferentialTargetOne : public DifferentialTarget<TestUniversalInput, TestUniversalOutput> {
     public:
