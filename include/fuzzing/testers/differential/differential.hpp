@@ -7,18 +7,25 @@
 #include <optional>
 #include <functional>
 #include <string>
+#include <utility>
 
 namespace fuzzing {
 namespace testers {
 namespace differential {
 
 struct UniversalBase {
+    virtual void Load(datasource::Datasource& ds) = 0;
+    virtual ~UniversalBase() = default;
 };
 
 template <class T>
 struct UniversalFromGeneric : public UniversalBase {
     T v;
+    UniversalFromGeneric(void) = default;
     UniversalFromGeneric(T v) : v(v) { }
+    void Load(datasource::Datasource& ds) override {
+        v = ds.Get<T>();
+    }
     bool operator!=(const UniversalFromGeneric<T>& other) const {
         return v != other.v;
     }
@@ -31,19 +38,14 @@ class DifferentialTarget {
     public:
         DifferentialTarget(void) = default;
         virtual ~DifferentialTarget(void) = default;
-        virtual void Start(void) = 0;
         virtual std::optional<UniversalOutput> Run(const UniversalInput& input) const = 0;
 };
 
-
-template <typename UniversalInput, typename UniversalOutput>
+template <typename UniversalInput, typename UniversalOutput, class... Targets>
 class DifferentialTester {
     static_assert(std::is_base_of<UniversalBase, UniversalInput>::value);
     static_assert(std::is_base_of<UniversalBase, UniversalOutput>::value);
     protected:
-        virtual UniversalInput DSToUniversalInput(datasource::Datasource& ds) const = 0;
-    private:
-        std::vector<std::shared_ptr<DifferentialTarget<UniversalInput, UniversalOutput>>> targets;
 
         bool compare(const std::vector<std::optional<UniversalOutput>> results) {
             std::vector<size_t> success;
@@ -69,35 +71,41 @@ class DifferentialTester {
 
             return true;
         }
+
+        template<std::size_t I = 0, typename... Tp> inline typename std::enable_if<I == sizeof...(Tp), void>::type RunTarget(
+                const UniversalInput& input,
+                std::vector<std::optional<UniversalOutput>>& results,
+                std::tuple<Tp...>& t) {
+            (void)input;
+            (void)results;
+            (void)t;
+        }
+
+        template<std::size_t I = 0, typename... Tp> inline typename std::enable_if<I < sizeof...(Tp), void>::type RunTarget(
+                const UniversalInput& input,
+                std::vector<std::optional<UniversalOutput>>& results,
+                std::tuple<Tp...>& t) {
+            results[I] = std::get<I>(t).Run(input);
+            RunTarget<I + 1, Tp...>(input, results, t);
+        }
+
     public:
-        DifferentialTester(std::initializer_list<std::shared_ptr<DifferentialTarget<UniversalInput, UniversalOutput>>> targets) : targets(targets) { };
+        DifferentialTester(void) = default;
+        ~DifferentialTester(void) = default;
+
         bool Run(datasource::Datasource& ds) {
-            std::vector<std::optional<UniversalOutput>> results(targets.size());
+            std::tuple<Targets...> tuple_;
+            const size_t targetSize = std::tuple_size<decltype(tuple_)>::value;
+            std::vector<std::optional<UniversalOutput>> results(targetSize);
 
-            const auto input = DSToUniversalInput(ds);
+            UniversalInput input;
+            input.Load(ds);
 
-            for (size_t i = 0; i < targets.size(); i++) {
-                auto& curTarget = targets[i];
-                curTarget->Start();
-            }
-
-            size_t numFailed = 0;
-            for (size_t i = 0; i < targets.size(); i++) {
-                auto& curTarget = targets[i];
-                results[i] = curTarget->Run(input);
-                
-                numFailed += results[i] == std::nullopt ? 1 : 0;
-            }
-
-            if ( numFailed == targets.size() ) {
-                /* All failed */
-
-                return false;
-            }
+            RunTarget(input, results, tuple_);
 
             if ( compare(results) == false ) {
-                printf("KRESH\n");
                 /* TODO call crash callback */
+                printf("(crash)\n");
                 return false;
             }
 
