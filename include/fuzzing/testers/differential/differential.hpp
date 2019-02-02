@@ -31,24 +31,46 @@ struct UniversalFromGeneric : public UniversalBase {
     }
 };
 
-template <typename UniversalInput, typename UniversalOutput>
+template <typename UniversalOutput, bool Multi> struct DifferentialReturn;
+
+template <typename UniversalOutput> struct DifferentialReturn<UniversalOutput, false> {
+    UniversalOutput output;
+    bool success;
+};
+
+template <typename UniversalOutput> struct DifferentialReturn<UniversalOutput, true> {
+    UniversalOutput output;
+    bool success;
+    /* TODO std::enable_if */
+    bool proceed;
+};
+
+template <typename UniversalInput, typename UniversalOutput, bool Multi>
 class DifferentialTarget {
+    using UniversalOutputExtra = DifferentialReturn<UniversalOutput, Multi>;
     static_assert(std::is_base_of<UniversalBase, UniversalInput>::value);
     static_assert(std::is_base_of<UniversalBase, UniversalOutput>::value);
     public:
         DifferentialTarget(void) = default;
         virtual ~DifferentialTarget(void) = default;
-        virtual std::optional<UniversalOutput> Run(const UniversalInput& input) const = 0;
+        virtual UniversalOutputExtra Run(const UniversalInput& input) = 0;
 };
+
+template <typename UniversalInput, typename UniversalOutput>
+using DifferentialTargetSingle = DifferentialTarget<UniversalInput, UniversalOutput, false>;
+
+template <typename UniversalInput, typename UniversalOutput>
+using DifferentialTargetMulti = DifferentialTarget<UniversalInput, UniversalOutput, true>;
 
 template <typename UniversalInput, typename UniversalOutput, bool Multi, class... Targets>
 class DifferentialTester {
+    using UniversalOutputExtra = DifferentialReturn<UniversalOutput, Multi>;
     static_assert(std::is_base_of<UniversalBase, UniversalInput>::value);
     static_assert(std::is_base_of<UniversalBase, UniversalOutput>::value);
     protected:
         template<std::size_t I = 0, typename... Tp> inline typename std::enable_if<I == sizeof...(Tp), void>::type RunTarget(
                 const UniversalInput& input,
-                std::vector<std::optional<UniversalOutput>>& results,
+                std::vector<UniversalOutputExtra>& results,
                 std::vector<size_t>& successfulRuns,
                 std::tuple<Tp...>& t) {
             (void)input;
@@ -59,11 +81,11 @@ class DifferentialTester {
 
         template<std::size_t I = 0, typename... Tp> inline typename std::enable_if<I < sizeof...(Tp), void>::type RunTarget(
                 const UniversalInput& input,
-                std::vector<std::optional<UniversalOutput>>& results,
+                std::vector<UniversalOutputExtra>& results,
                 std::vector<size_t>& successfulRuns,
                 std::tuple<Tp...>& t) {
             results[I] = std::get<I>(t).Run(input);
-            if ( results[I] != std::nullopt ) {
+            if ( results[I].success == true ) {
                 successfulRuns.push_back(I);
             }
             RunTarget<I + 1, Tp...>(input, results, successfulRuns, t);
@@ -83,7 +105,7 @@ class DifferentialTester {
             input.Load(ds);
 
             do {
-                std::vector<std::optional<UniversalOutput>> results(numTargets);
+                std::vector<UniversalOutputExtra> results(numTargets);
                 std::vector<size_t> successfulRuns;
 
                 /* Run 'results[i] = target.Run(input)' for each target */
@@ -93,7 +115,7 @@ class DifferentialTester {
                     for (size_t i = 0; i < successfulRuns.size() - 1; i++) {
                         const size_t curIndex = successfulRuns[i];
                         const size_t nextIndex = successfulRuns[i+1];
-                        if ( *(results[curIndex]) != *(results[nextIndex]) ) {
+                        if ( results[curIndex].output != results[nextIndex].output ) {
                             /* TODO call crash callback */
                             printf("(crash)\n");
                             return false;

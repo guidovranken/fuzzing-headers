@@ -4,7 +4,8 @@
 using fuzzing::datasource::Datasource;
 using fuzzing::testers::differential::UniversalFromGeneric;
 using fuzzing::testers::differential::DifferentialTesterSingle;
-using fuzzing::testers::differential::DifferentialTarget;
+using fuzzing::testers::differential::DifferentialTargetSingle;
+using fuzzing::testers::differential::DifferentialReturn;
 
 using TestUniversalInput = UniversalFromGeneric<std::string>;
 using TestUniversalOutput = UniversalFromGeneric<std::string>;
@@ -12,14 +13,14 @@ using TestUniversalOutput = UniversalFromGeneric<std::string>;
 template <class... Targets>
 using TestDifferentialTester = DifferentialTesterSingle<TestUniversalInput, TestUniversalOutput, Targets...>;
 
-class TestDifferentialTargetOne : public DifferentialTarget<TestUniversalInput, TestUniversalOutput> {
+class TestDifferentialTargetOne : public DifferentialTargetSingle<TestUniversalInput, TestUniversalOutput> {
     public:
-        std::optional<TestUniversalOutput> Run(const TestUniversalInput& input) const override { return TestUniversalOutput("One"); }
+        DifferentialReturn<TestUniversalOutput, false> Run(const TestUniversalInput& input) override { return {std::string("One"), true}; }
 };
 
-class TestDifferentialTargetTwo : public DifferentialTarget<TestUniversalInput, TestUniversalOutput> {
+class TestDifferentialTargetTwo : public DifferentialTargetSingle<TestUniversalInput, TestUniversalOutput> {
     public:
-        std::optional<TestUniversalOutput> Run(const TestUniversalInput& input) const override { return TestUniversalOutput("Two"); }
+        DifferentialReturn<TestUniversalOutput, false> Run(const TestUniversalInput& input) override { return {std::string("Two"), true}; }
 };
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
