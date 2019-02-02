@@ -62,6 +62,34 @@ using DifferentialTargetSingle = DifferentialTarget<UniversalInput, UniversalOut
 template <typename UniversalInput, typename UniversalOutput>
 using DifferentialTargetMulti = DifferentialTarget<UniversalInput, UniversalOutput, true>;
 
+template <typename InternalInput, typename UniversalInput, typename UniversalOutput, bool Multi>
+class DifferentialTargetDefault : public DifferentialTarget<UniversalInput, UniversalOutput, Multi> {
+    using UniversalOutputExtra = DifferentialReturn<UniversalOutput, Multi>;
+    static_assert(std::is_base_of<UniversalBase, UniversalInput>::value);
+    static_assert(std::is_base_of<UniversalBase, UniversalOutput>::value);
+    protected:
+        InternalInput internalInput;
+        virtual bool toInternal(const UniversalInput& universalInput) = 0;
+        virtual UniversalOutputExtra run(void) = 0;
+    public:
+        DifferentialTargetDefault(void) = default;
+        virtual ~DifferentialTargetDefault(void) = default;
+        UniversalOutputExtra Run(const UniversalInput& universalInput) override {
+            if ( toInternal(universalInput) == false ) {
+                /* TODO set proceed */
+                return {.success = false};
+            }
+
+            return run();
+        }
+};
+
+template <typename InternalInput, typename UniversalInput, typename UniversalOutput>
+using DifferentialTargetDefaultSingle = DifferentialTargetDefault<InternalInput, UniversalInput, UniversalOutput, false>;
+
+template <typename InternalInput, typename UniversalInput, typename UniversalOutput>
+using DifferentialTargetDefaultMulti = DifferentialTargetDefault<InternalInput, UniversalInput, UniversalOutput, true>;
+
 template <typename UniversalInput, typename UniversalOutput, bool Multi, class... Targets>
 class DifferentialTester {
     using UniversalOutputExtra = DifferentialReturn<UniversalOutput, Multi>;
@@ -84,6 +112,8 @@ class DifferentialTester {
                 std::vector<UniversalOutputExtra>& results,
                 std::vector<size_t>& successfulRuns,
                 std::tuple<Tp...>& t) {
+            /* Assert that the current target is derived from DifferentialTarget */
+            static_assert(std::is_base_of<DifferentialTarget<UniversalInput, UniversalOutput, Multi>, typename std::remove_reference<decltype(std::get<I>(t))>::type>::value);
             results[I] = std::get<I>(t).Run(input);
             if ( results[I].success == true ) {
                 successfulRuns.push_back(I);
