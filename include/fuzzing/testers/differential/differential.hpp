@@ -6,13 +6,28 @@
 #include <vector>
 #include <optional>
 #include <functional>
+#include <string>
 
 namespace fuzzing {
 namespace testers {
 namespace differential {
 
+struct UniversalBase {
+};
+
+template <class T>
+struct UniversalFromGeneric : public UniversalBase {
+    T v;
+    UniversalFromGeneric(T v) : v(v) { }
+    bool operator!=(const UniversalFromGeneric<T>& other) const {
+        return v != other.v;
+    }
+};
+
 template <typename UniversalInput, typename UniversalOutput>
 class DifferentialTarget {
+    static_assert(std::is_base_of<UniversalBase, UniversalInput>::value);
+    static_assert(std::is_base_of<UniversalBase, UniversalOutput>::value);
     public:
         DifferentialTarget(void) = default;
         virtual ~DifferentialTarget(void) = default;
@@ -23,6 +38,8 @@ class DifferentialTarget {
 
 template <typename UniversalInput, typename UniversalOutput>
 class DifferentialTester {
+    static_assert(std::is_base_of<UniversalBase, UniversalInput>::value);
+    static_assert(std::is_base_of<UniversalBase, UniversalOutput>::value);
     protected:
         virtual UniversalInput DSToUniversalInput(datasource::Datasource& ds) const = 0;
     private:

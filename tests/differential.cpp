@@ -2,28 +2,32 @@
 #include <string>
 
 using fuzzing::datasource::Datasource;
+using fuzzing::testers::differential::UniversalFromGeneric;
 using fuzzing::testers::differential::DifferentialTester;
 using fuzzing::testers::differential::DifferentialTarget;
 
-class TestDifferentialTester : public DifferentialTester<std::string, std::string> {
+using TestUniversalInput = UniversalFromGeneric<std::string>;
+using TestUniversalOutput = UniversalFromGeneric<std::string>;
+
+class TestDifferentialTester : public DifferentialTester<TestUniversalInput, TestUniversalOutput> {
     private:
-        std::string DSToUniversalInput(Datasource& ds) const override {
-            return ds.Get<std::string>();
+        TestUniversalInput DSToUniversalInput(Datasource& ds) const override {
+            return TestUniversalInput(ds.Get<std::string>());
         }
     public:
-        TestDifferentialTester(std::initializer_list<std::shared_ptr<DifferentialTarget<std::string, std::string>>> targets) : DifferentialTester(targets) { }
+        TestDifferentialTester(std::initializer_list<std::shared_ptr<DifferentialTarget<TestUniversalInput, TestUniversalOutput>>> targets) : DifferentialTester(targets) { }
 };
 
-class TestDifferentialTargetOne : public DifferentialTarget<std::string, std::string> {
+class TestDifferentialTargetOne : public DifferentialTarget<TestUniversalInput, TestUniversalOutput> {
     public:
         void Start(void) override { };
-        std::optional<std::string> Run(const std::string& input) const override { return "One"; }
+        std::optional<TestUniversalOutput> Run(const TestUniversalInput& input) const override { return TestUniversalOutput("One"); }
 };
 
-class TestDifferentialTargetTwo : public DifferentialTarget<std::string, std::string> {
+class TestDifferentialTargetTwo : public DifferentialTarget<TestUniversalInput, TestUniversalOutput> {
     public:
         void Start(void) override { };
-        std::optional<std::string> Run(const std::string& input) const override { return "Two"; }
+        std::optional<TestUniversalOutput> Run(const TestUniversalInput& input) const override { return TestUniversalOutput("Two"); }
 };
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
