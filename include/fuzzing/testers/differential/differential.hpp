@@ -94,13 +94,16 @@ class DifferentialTester {
         ~DifferentialTester(void) = default;
 
         bool Run(datasource::Datasource& ds) {
+            /* Instantiate each target class */
             std::tuple<Targets...> targets;
+
             constexpr size_t targetSize = std::tuple_size<decltype(targets)>::value;
             std::vector<std::optional<UniversalOutput>> results(targetSize);
 
             UniversalInput input;
             input.Load(ds);
 
+            /* Run 'results[i] = target.Run(input)' for each target */
             RunTarget(input, results, targets);
 
             if ( compare(results) == false ) {
