@@ -41,7 +41,8 @@ template <typename UniversalOutput> struct DifferentialReturn<UniversalOutput, f
 template <typename UniversalOutput> struct DifferentialReturn<UniversalOutput, true> {
     UniversalOutput output;
     bool success;
-    std::enable_if<true, bool> proceed;
+    /* TODO std::enable_if */
+    bool proceed;
 };
 
 template <typename UniversalInput, typename UniversalOutput, bool Multi>
