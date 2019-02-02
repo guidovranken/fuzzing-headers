@@ -95,7 +95,7 @@ class DifferentialTester {
 
         bool Run(datasource::Datasource& ds) {
             std::tuple<Targets...> targets;
-            const size_t targetSize = std::tuple_size<decltype(targets)>::value;
+            constexpr size_t targetSize = std::tuple_size<decltype(targets)>::value;
             std::vector<std::optional<UniversalOutput>> results(targetSize);
 
             UniversalInput input;
