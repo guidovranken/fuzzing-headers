@@ -47,12 +47,13 @@ class DifferentialTester {
     static_assert(std::is_base_of<UniversalBase, UniversalOutput>::value);
     protected:
 
+        template <size_t numTargets>
         bool compare(const std::vector<std::optional<UniversalOutput>> results) {
             std::vector<size_t> success;
 
-            for (size_t i = 0; i < results.size(); i++) {
+            for (size_t i = 0; i < numTargets; i++) {
                 if ( results[i] != std::nullopt ) {
-                    success.push_back(i);
+                    success.emplace_back(i);
                 }
             }
 
@@ -97,8 +98,8 @@ class DifferentialTester {
             /* Instantiate each target class */
             std::tuple<Targets...> targets;
 
-            constexpr size_t targetSize = std::tuple_size<decltype(targets)>::value;
-            std::vector<std::optional<UniversalOutput>> results(targetSize);
+            constexpr size_t numTargets = std::tuple_size<decltype(targets)>::value;
+            std::vector<std::optional<UniversalOutput>> results(numTargets);
 
             UniversalInput input;
             input.Load(ds);
@@ -106,7 +107,7 @@ class DifferentialTester {
             /* Run 'results[i] = target.Run(input)' for each target */
             RunTarget(input, results, targets);
 
-            if ( compare(results) == false ) {
+            if ( compare<numTargets>(results) == false ) {
                 /* TODO call crash callback */
                 printf("(crash)\n");
                 return false;
