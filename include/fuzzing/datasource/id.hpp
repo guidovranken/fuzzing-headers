@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <utility>
+#include <map>
 
 namespace fuzzing {
 namespace datasource  {
@@ -40,6 +42,12 @@ inline constexpr uint64_t ID(const char* const str, const uint64_t value = val_6
     auto ret = (str[0] == '\0') ? value : ID(&str[1], (value ^ uint64_t(str[0])) * prime_64_const);
     return ret;
 }
+
+inline constexpr std::pair<const char*, uint64_t> IDPair(const char* const str, const uint64_t value = val_64_const) noexcept {
+    return {str, ID(str, value)};
+}
+
+using IDMap = std::map<const char*, uint64_t>;
 
 } /* namespace datasource */
 } /* namespace fuzzing */
