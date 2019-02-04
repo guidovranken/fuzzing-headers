@@ -16,9 +16,8 @@ namespace datasource  {
 class Base
 {
     protected:
-        virtual bool canAdvance(const size_t size) = 0;
+        virtual std::vector<uint8_t> get(const size_t min, const size_t max, const uint64_t id = 0) = 0;
     public:
-        virtual void copyAndAdvance(void* dest, const size_t size, const uint64_t id = 0) = 0;
         Base(void) = default;
         virtual ~Base(void) = default;
 
@@ -42,14 +41,16 @@ class Base
 template<class T> T Base::Get(const uint64_t id)
 {
     T ret;
-    copyAndAdvance(&ret, sizeof(ret), id);
+    const auto v = get(sizeof(ret), sizeof(ret), id);
+    memcpy(&ret, v.data(), sizeof(ret));
     return ret;
 }
 
 template <> bool Base::Get<bool>(const uint64_t id)
 {
     uint8_t ret;
-    copyAndAdvance(&ret, sizeof(ret), id);
+    const auto v = get(sizeof(ret), sizeof(ret), id);
+    memcpy(&ret, v.data(), sizeof(ret));
     return (ret % 2) ? true : false;
 }
 
@@ -79,22 +80,7 @@ uint16_t Base::GetChoice(const uint64_t id)
 
 std::vector<uint8_t> Base::GetData(const uint64_t id, const size_t max)
 {
-    std::vector<uint8_t> ret;
-
-    uint16_t size = Get<uint16_t>(id);
-
-    if ( max > 0 && size > max ) {
-        size = max;
-    }
-
-    if ( size == 0 || canAdvance(size) == false ) {
-        return ret;
-    }
-    
-    ret.resize(size);
-    copyAndAdvance(ret.data(), size, id);
-
-    return ret;
+    return get(0, max, id);
 }
 
 
@@ -128,9 +114,8 @@ class Datasource : public Base
         const size_t size;
         size_t idx;
         size_t left;
-        bool canAdvance(const size_t size) override;
+        std::vector<uint8_t> get(const size_t min, const size_t max, const uint64_t id = 0) override;
     public:
-        void copyAndAdvance(void* dest, const size_t size, const uint64_t id = 0) override;
         Datasource(const uint8_t* _data, const size_t _size);
 };
 
@@ -139,21 +124,33 @@ Datasource::Datasource(const uint8_t* _data, const size_t _size) :
 {
 }
 
-bool Datasource::canAdvance(const size_t size)
-{
-    return size <= left;
-}
-
-void Datasource::copyAndAdvance(void* dest, const size_t size, const uint64_t id)
-{
-    (void)id;
-
-    if ( canAdvance(size) == false ) {
+std::vector<uint8_t> Datasource::get(const size_t min, const size_t max, const uint64_t id) {
+    uint32_t getSize;
+    if ( left < sizeof(getSize) ) {
         throw OutOfData();
     }
-    memcpy(dest, data + idx, size);
-    idx += size;
-    left -= size;
+    memcpy(&getSize, data + idx, sizeof(getSize));
+    idx += sizeof(getSize);
+    left -= sizeof(getSize);
+
+    if ( getSize < min ) {
+        getSize = min;
+    }
+    if ( getSize > max ) {
+        getSize = max;
+    }
+
+    if ( left < getSize ) {
+        throw OutOfData();
+    }
+
+    std::vector<uint8_t> ret(getSize);
+
+    memcpy(ret.data(), data + idx, getSize);
+    idx += getSize;
+    left -= getSize;
+
+    return ret;
 }
 
 #endif
