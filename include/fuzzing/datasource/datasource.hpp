@@ -125,6 +125,8 @@ Datasource::Datasource(const uint8_t* _data, const size_t _size) :
 }
 
 std::vector<uint8_t> Datasource::get(const size_t min, const size_t max, const uint64_t id) {
+    (void)id;
+
     uint32_t getSize;
     if ( left < sizeof(getSize) ) {
         throw OutOfData();
