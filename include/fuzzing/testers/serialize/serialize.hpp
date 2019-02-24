@@ -2,6 +2,7 @@
 #define FUZZING_TESTERS_SERIALIZE_SERIALIZE_HPP
 
 #include <fuzzing/memory.hpp>
+#include <fuzzing/exception.hpp>
 #include <functional>
 
 namespace fuzzing {
@@ -83,6 +84,43 @@ class SerializeTester {
         SerializeTester(void) = default;
 };
 
+template <class ObjectType, class BinaryType>
+class DefaultSerializeTester : public SerializeTester<ObjectType, BinaryType> {
+    private:
+        using ObjectToBinaryFn = std::function<std::optional<BinaryType>(ObjectType)>;
+        using BinaryToObjectFn = std::function<std::optional<ObjectType>(BinaryType)>;
+
+        using global_TargetException = exception::TargetException;
+        class TargetException : public global_TargetException {
+            public:
+                TargetException(const std::string reason) : global_TargetException(reason) { }
+        };
+        const ObjectToBinaryFn objectToBinaryFn;
+        const BinaryToObjectFn binaryToObjectFn;
+    public:
+        DefaultSerializeTester(ObjectToBinaryFn objectToBinaryFn, BinaryToObjectFn binaryToObjectFn) :
+            objectToBinaryFn(objectToBinaryFn), binaryToObjectFn(binaryToObjectFn) { }
+        void Test(const BinaryType in) const {
+            const auto res = this->binaryToObject2X(in,
+                    binaryToObjectFn,
+                    objectToBinaryFn);
+            if ( res && res->first != res->second ) {
+                std::cout << "res->first: " << res->first << std::endl;
+                std::cout << "res->second: " << res->second << std::endl;
+                abort();
+            }
+        }
+        void Test(const ObjectType in) const {
+            const auto res = this->objectToBinary2X(in,
+                    objectToBinaryFn,
+                    binaryToObjectFn);
+            if ( res && res->first != res->second ) {
+                std::cout << "res->first: " << res->first << std::endl;
+                std::cout << "res->second: " << res->second << std::endl;
+                throw TargetException("Double conversion mismatch");
+            }
+        }
+};
 } /* namespace serialize */
 } /* namespace testers */
 } /* namespace fuzzing */
