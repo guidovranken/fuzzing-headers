@@ -3,6 +3,8 @@
 
 #include <fuzzing/memory.hpp>
 #include <fuzzing/exception.hpp>
+#include <fuzzing/datasource/datasource.hpp>
+#include <fuzzing/test.hpp>
 #include <functional>
 
 namespace fuzzing {
@@ -97,9 +99,21 @@ class DefaultSerializeTester : public SerializeTester<ObjectType, BinaryType> {
         };
         const ObjectToBinaryFn objectToBinaryFn;
         const BinaryToObjectFn binaryToObjectFn;
+        std::function<void(datasource::Datasource& ds)> testBinaryFn;
+        void testBinary(datasource::Datasource& ds) {
+            Test( ds.Get<BinaryType>() );
+        }
+        std::function<void(datasource::Datasource& ds)> testObjectFn;
+        void testObject(datasource::Datasource& ds) {
+            Test( ds.Get<ObjectType>() );
+        }
     public:
         DefaultSerializeTester(ObjectToBinaryFn objectToBinaryFn, BinaryToObjectFn binaryToObjectFn) :
-            objectToBinaryFn(objectToBinaryFn), binaryToObjectFn(binaryToObjectFn) { }
+            objectToBinaryFn(objectToBinaryFn),
+            binaryToObjectFn(binaryToObjectFn),
+            testBinaryFn(std::bind(&DefaultSerializeTester::testBinary, this, std::placeholders::_1)),
+            testObjectFn(std::bind(&DefaultSerializeTester::testObject, this, std::placeholders::_1))
+        { }
         void Test(const BinaryType in) const {
             const auto res = this->binaryToObject2X(in,
                     binaryToObjectFn,
@@ -119,6 +133,20 @@ class DefaultSerializeTester : public SerializeTester<ObjectType, BinaryType> {
                 std::cout << "res->second: " << res->second << std::endl;
                 throw TargetException("Double conversion mismatch");
             }
+        }
+        void Test(datasource::Datasource& ds, const uint64_t id = 0) const {
+            auto mt = new Multitest(
+                    {
+                      SingleTest(testBinaryFn),
+                      SingleTest(testObjectFn)
+                    },
+                    id
+                );
+            try {
+                mt->Test(ds);
+            } catch ( fuzzing::datasource::Datasource::OutOfData ) {
+            }
+            delete mt;
         }
 };
 } /* namespace serialize */

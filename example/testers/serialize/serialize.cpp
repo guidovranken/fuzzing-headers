@@ -19,18 +19,13 @@ static std::optional<std::string> intToString(const int& in) {
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-    fuzzing::testers::serialize::DefaultSerializeTester<int, std::string> tester(
+    static fuzzing::testers::serialize::DefaultSerializeTester<int, std::string> tester(
             std::bind(&intToString, std::placeholders::_1),
             std::bind(&stringToInt, std::placeholders::_1));
 
     fuzzing::datasource::Datasource ds(data, size);
 
-
-    try {
-        tester.Test( ds.Get<int>() );
-        tester.Test( ds.Get<std::string>() );
-    } catch ( fuzzing::datasource::Datasource::OutOfData ) {
-    }
+    tester.Test( ds );
 
     return 0;
 }
