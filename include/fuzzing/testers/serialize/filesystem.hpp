@@ -4,6 +4,7 @@
 #include <fuzzing/datasource/id.hpp>
 #include <fuzzing/generators/filesystem.hpp>
 #include <fuzzing/exception.hpp>
+#include <fuzzing/util/binaryexecutor.hpp>
 #include <stdlib.h>
 
 namespace fuzzing {
@@ -102,28 +103,25 @@ class ArchiverTester : public FilesystemTester {
         { }
 };
 
+template <typename BinaryExecutor>
 class TarTester : public ArchiverTester {
+    static_assert(std::is_base_of<util::BinaryExecutor, BinaryExecutor>::value);
     private:
         const std::string tarCmd;
+        std::string extraFlags;
 
         bool pack(const std::string infile, const std::string outfile) override {
-            const auto cmd = std::string(tarCmd + " cf " + outfile + " " + infile);
+            const auto cmd = std::string(tarCmd + " " + extraFlags + " --create --file " + outfile + " " + infile);
 
-            if ( system(cmd.c_str()) != 0 ) {
-                return false;
-            }
-
-            return true;
+            BinaryExecutor executor(cmd);
+            return executor.Run();
         }
 
         bool unpack(const std::string infile) override {
-            const auto cmd = std::string(tarCmd + " xf " + infile);
+            const auto cmd = std::string(tarCmd + " " + extraFlags + " --extract --file " + infile);
 
-            if ( system(cmd.c_str()) != 0 ) {
-                return false;
-            }
-
-            return true;
+            BinaryExecutor executor(cmd);
+            return executor.Run();
         }
     public:
         TarTester(
@@ -132,7 +130,84 @@ class TarTester : public ArchiverTester {
                 const std::string tarCmd) :
             ArchiverTester(ds, fsRootPath),
             tarCmd(tarCmd.empty() ? "tar" : tarCmd)
-        { }
+        {
+            const auto compression = ds.Get<uint8_t>();
+
+            switch ( compression ) {
+                case    1:
+                    extraFlags += "--gzip ";
+                    break;
+                case    2:
+                    extraFlags += "--bzip2 ";
+                    break;
+                case    3:
+                    extraFlags += "--xz ";
+                    break;
+                case    4:
+                    extraFlags += "--lzip ";
+                    break;
+                case    5:
+                    extraFlags += "--lzma ";
+                    break;
+                case    6:
+                    extraFlags += "--lzop ";
+                    break;
+            }
+
+            {
+                std::string sortArg = "--sort=";
+
+                const auto sort = ds.Get<uint8_t>();
+
+                switch ( sort ) {
+                    case    1:
+                        sortArg += "name";
+                        break;
+                    case    2:
+                        sortArg += "inode";
+                        break;
+                    default:
+                        sortArg += "none";
+                        break;
+                }
+
+                sortArg += " ";
+
+                extraFlags += sortArg;
+            }
+
+            if ( ds.Get<bool>() == true ) {
+                extraFlags += "--seek ";
+            }
+
+            {
+                std::string formatArg = "--format=";
+
+                const auto format = ds.Get<uint8_t>();
+
+                switch ( format ) {
+                    case    1:
+                        formatArg += "oldgnu";
+                        break;
+                    case    2:
+                        formatArg += "pax";
+                        break;
+                    case    3:
+                        formatArg += "ustar";
+                        break;
+                    case    4:
+                        formatArg += "v7";
+                        break;
+                    default:
+                        formatArg += "gnu";
+                        break;
+                }
+
+                formatArg += " ";
+
+                extraFlags += formatArg;
+            }
+        }
 };
 
 } /* namespace filesystem */

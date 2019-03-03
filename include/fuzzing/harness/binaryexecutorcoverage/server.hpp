@@ -2,20 +2,20 @@
 #include <unistd.h>
 #include <string.h>
 #include <string>
+#include <fuzzing/util/binaryexecutor.hpp>
 #include "shared.hpp"
 
-#ifdef __linux__
-__attribute__((section("__libfuzzer_extra_counters")))
-#endif
-static uint8_t Counters[kNumPCs];
+extern "C" {
+    __attribute__((section("__libfuzzer_extra_counters")))
+    static uint8_t Counters[kNumPCs];
+}
 
 namespace fuzzing {
 namespace harness {
-namespace externalbinary {
+namespace binaryexecutorcoverage {
 
-class ExternalBinaryExecutor {
+class BinaryExecutorCoverage : public util::BinaryExecutor {
     private:
-        const std::string program;
         const std::string pidStr;
         size_t counter = 0;
         std::string lastDumpfile;
@@ -28,21 +28,28 @@ class ExternalBinaryExecutor {
         }
 
     public:
-        ExternalBinaryExecutor(const std::string program) :
-            program(program), pidStr( std::to_string(getpid()) )
+        BinaryExecutorCoverage(const std::string program) :
+            util::BinaryExecutor(program), pidStr( std::to_string(getpid()) )
         { }
 
-        bool Run(void) {
+        bool preExecHook(void) override {
             const auto dumpfile = getDumpfile();
-            unlink(dumpfile.c_str());
+            /* TODO check ret */ unlink(dumpfile.c_str());
 
             if ( setenv("FUZZER_COUNTER_DUMP_FILE", dumpfile.c_str(), 1) != 0 ) {
                 abort();
             }
-            return system(program.c_str()) == 0;
+
+            return true;
         }
 
-        bool LoadCounters(void) {
+        bool postExecHook(const int systemRet) override {
+            /* TODO remove dumpfile */
+
+            if ( systemRet != 0 ) {
+                return false;
+            }
+
             const auto dumpfile = lastDumpfile;
             FILE* fp = fopen(dumpfile.c_str(), "rb");
             if ( fp == nullptr ) {
@@ -66,7 +73,7 @@ end:
 
 };
 
-} /* namespace externalbinary */
+} /* namespace binaryexecutorcoverage */
 } /* namespace harness */
 } /* namespace fuzzing */
 
