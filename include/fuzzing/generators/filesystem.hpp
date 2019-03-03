@@ -144,7 +144,7 @@ class File : public AbstractFile {
             /* Create */
             FILE* fp = fopen(getFullPath().c_str(), "wb");
             if ( fp == nullptr ) {
-                goto end;
+                return false;
             }
 
             if ( content.empty() ) {
@@ -198,7 +198,7 @@ end:
             /* Open */
             FILE* fp = fopen(getFullPath().c_str(), "rb");
             if ( fp == nullptr ) {
-                goto end;
+                return false;
             }
 
             if ( content.empty() ) {
