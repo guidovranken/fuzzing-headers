@@ -138,7 +138,7 @@ std::vector<uint8_t> Datasource::get(const size_t min, const size_t max, const u
     if ( getSize < min ) {
         getSize = min;
     }
-    if ( getSize > max ) {
+    if ( max && getSize > max ) {
         getSize = max;
     }
 
