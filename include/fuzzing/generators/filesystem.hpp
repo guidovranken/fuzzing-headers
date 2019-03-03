@@ -2,6 +2,7 @@
 
 #include <fuzzing/datasource/datasource.hpp>
 #include <fuzzing/datasource/id.hpp>
+#include <fuzzing/exception.hpp>
 
 #include <cstdio>
 #include <dirent.h>
@@ -14,17 +15,32 @@
 
 
 namespace fuzzing {
+namespace generators {
 namespace filesystem {
+
+using global_FlowException = exception::FlowException;
+class FlowException : public global_FlowException {
+    public:
+        FlowException() : global_FlowException() { }
+};
 
 static const std::string generateFilename(datasource::Datasource& ds) {
     auto filename = ds.Get<std::string>();
+    if ( filename.empty() ) {
+        throw FlowException();
+    }
     for (size_t i = 0; i < filename.size(); i++) {
+#if 0
         if ( filename[i] == '.' && i + 1 < filename.size() && filename[i+1] == '.' ) {
             filename[i] = '_';
         } else if ( filename[i] == '~' ) {
             filename[i] = '_';
         } else if ( filename[i] == '/' ) {
             /* TODO allowed if preceded by backspace */
+            filename[i] = '_';
+        }
+#endif
+        if ( !isdigit(filename[i]) ) {
             filename[i] = '_';
         }
     }
@@ -86,7 +102,7 @@ class AbstractFile {
         const FileAttributes attributes;
         const std::string basePath;
         const std::string getFullPath(void) const {
-            return basePath + Name();
+            return basePath + "/" + Name();
         }
 
     public:
@@ -104,6 +120,7 @@ class AbstractFile {
         virtual bool Write(void) const = 0;
         virtual bool Verify(void) const = 0;
         virtual bool Remove(void) const = 0;
+        virtual std::string ToString(void) const = 0;
 };
 
 class File : public AbstractFile {
@@ -127,6 +144,12 @@ class File : public AbstractFile {
             /* Create */
             FILE* fp = fopen(getFullPath().c_str(), "wb");
             if ( fp == nullptr ) {
+                goto end;
+            }
+
+            if ( content.empty() ) {
+                /* Skip write step */
+                ret = true;
                 goto end;
             }
 
@@ -178,6 +201,12 @@ end:
                 goto end;
             }
 
+            if ( content.empty() ) {
+                /* Skip read step */
+                ret = true;
+                goto end;
+            }
+
             /* Read */
             if ( fread(content_copy.data(), content.size(), 1, fp) != 1 ) {
                 goto end;
@@ -206,11 +235,26 @@ end:
             /* Remove */
             return remove(getFullPath().c_str()) == 0 ? true : false;
         }
+
+        std::string ToString(void) const override {
+            return getFullPath() + "\n";
+        }
 };
 
 class Directory : public AbstractFile {
     private:
         std::vector<std::shared_ptr<AbstractFile>> members;
+
+        bool isDuplicate(const std::string& name) const {
+
+            for (const auto& member : members) {
+                if ( member->Name() == name ) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         bool matchDirectoryListing(void) const {
 
@@ -219,14 +263,19 @@ class Directory : public AbstractFile {
 
             /* Get list of names of files in directory */
             {
-                DIR* d = opendir(basePath.c_str());
+                DIR* d = opendir(getFullPath().c_str());
                 if ( d == nullptr ) {
                     return false;
                 }
 
                 struct dirent *dir;
                 while ((dir = readdir(d)) != nullptr) {
-                    fsFilenames.insert( dir->d_name );
+                    const std::string toAdd = dir->d_name;
+                    if ( toAdd == "." || toAdd == "..") {
+                        continue;
+                    }
+
+                    fsFilenames.insert( std::move(toAdd) );
                 }
 
                 closedir(d);
@@ -246,15 +295,26 @@ class Directory : public AbstractFile {
         }
 
     public:
-        Directory(datasource::Datasource& ds, const std::string basePath) :
+        Directory(datasource::Datasource& ds, const std::string basePath, const int depth = 0) :
         AbstractFile(ds, basePath)
         {
             while ( ds.Get<bool>() == true ) {
+                std::shared_ptr<AbstractFile> newFile;
+
                 if ( ds.Get<bool>() == true ) {
-                    members.push_back( std::make_shared<File>(ds, basePath) ); 
+                    newFile = std::make_shared<File>(ds, getFullPath());
                 } else {
-                    members.push_back( std::make_shared<Directory>(ds, basePath) ); 
+                    if ( depth + 1 > 4096 ) {
+                        throw FlowException();
+                    }
+                    newFile = std::make_shared<Directory>(ds, getFullPath(), depth+1);
                 }
+
+                if ( isDuplicate(newFile->Name()) ) {
+                    throw FlowException();
+                }
+
+                members.emplace_back( std::move(newFile) );
             } 
         }
 
@@ -314,11 +374,6 @@ class Directory : public AbstractFile {
                 return false;
             }
 
-            /* Remove */
-            if ( remove(getFullPath().c_str()) != 0 ) {
-                return false;
-            }
-
             /* Remove all children recursively */
             for (const auto& member : members) {
                 if ( member->Remove() == false ) {
@@ -326,8 +381,25 @@ class Directory : public AbstractFile {
                 }
             } 
 
+            /* Remove */
+            if ( remove(getFullPath().c_str()) != 0 ) {
+                return false;
+            }
+
             /* Success */
             return true;
+        }
+
+        std::string ToString(void) const override {
+            std::string ret;
+
+            ret += getFullPath() + "\n";
+
+            for (const auto& member : members) {
+                ret += member->ToString();
+            }
+
+            return ret;
         }
 };
 
@@ -339,19 +411,24 @@ class Filesystem {
             fsRoot( std::make_shared<Directory>(ds, fsRootPath) )
         { }
 
-        bool Write(void) {
+        bool Write(void) const {
             return fsRoot->Write();
         }
 
-        bool Verify(void) {
+        bool Verify(void) const {
             return fsRoot->Verify();
         }
 
-        bool Remove(void) {
+        bool Remove(void) const {
             return fsRoot->Remove();
             /* TODO verify that fsRootPath is now empty */
+        }
+
+        std::string ToString(void) const {
+            return fsRoot->ToString();
         }
 };
 
 } /* namespace filesystem */
+} /* namespace generators */
 } /* namespace fuzzing */
