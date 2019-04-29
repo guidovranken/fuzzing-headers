@@ -23,7 +23,7 @@ class Base
 
         template<class T> T Get(const uint64_t id = 0);
         uint16_t GetChoice(const uint64_t id = 0);
-        std::vector<uint8_t> GetData(const uint64_t id, const size_t max = 0);
+        std::vector<uint8_t> GetData(const uint64_t id, const size_t min = 0, const size_t max = 0);
         template <class T> std::vector<T> GetVector(const uint64_t id = 0);
 
         class OutOfData : public fuzzing::exception::FlowException {
@@ -78,9 +78,9 @@ uint16_t Base::GetChoice(const uint64_t id)
     return Get<uint16_t>(id);
 }
 
-std::vector<uint8_t> Base::GetData(const uint64_t id, const size_t max)
+std::vector<uint8_t> Base::GetData(const uint64_t id, const size_t min, const size_t max)
 {
-    return get(0, max, id);
+    return get(min, max, id);
 }
 
 
@@ -106,6 +106,7 @@ std::vector<T> Base::GetVector(const uint64_t id) {
 
     return ret;
 }
+#endif
 
 class Datasource : public Base
 {
@@ -119,6 +120,7 @@ class Datasource : public Base
         Datasource(const uint8_t* _data, const size_t _size);
 };
 
+#ifndef FUZZING_HEADERS_NO_IMPL
 Datasource::Datasource(const uint8_t* _data, const size_t _size) :
     Base(), data(_data), size(_size), idx(0), left(size)
 {
@@ -148,13 +150,14 @@ std::vector<uint8_t> Datasource::get(const size_t min, const size_t max, const u
 
     std::vector<uint8_t> ret(getSize);
 
-    memcpy(ret.data(), data + idx, getSize);
+    if ( getSize > 0 ) {
+        memcpy(ret.data(), data + idx, getSize);
+    }
     idx += getSize;
     left -= getSize;
 
     return ret;
 }
-
 #endif
 
 } /* namespace datasource */
