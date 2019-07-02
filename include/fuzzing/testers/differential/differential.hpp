@@ -1,5 +1,4 @@
-#ifndef FUZZING_TESTERS_SERIALIZE_DIFFERENTIAL_HPP
-#define FUZZING_TESTERS_SERIALIZE_DIFFERENTIAL_HPP
+#pragma once
 
 #include <fuzzing/datasource/datasource.hpp>
 #include <memory>
@@ -166,5 +165,3 @@ using DifferentialTesterMulti = DifferentialTester<UniversalInput, UniversalOutp
 } /* namespace differential */
 } /* namespace testers */
 } /* namespace fuzzing */
-
-#endif

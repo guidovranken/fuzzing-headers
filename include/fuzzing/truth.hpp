@@ -1,5 +1,4 @@
-#ifndef FUZZING_TRUTH_HPP
-#define FUZZING_TRUTH_HPP
+#pragma once
 
 #include <optional>
 
@@ -51,5 +50,3 @@ inline bool isValid(Comparison comparison) {
 
 } /* namespace fuzzing */
 } /* namespace truth */
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef FUZZING_EXCEPTION_HPP
-#define FUZZING_EXCEPTION_HPP
+#pragma once
 
 #include <exception>
 #include <string>
@@ -43,5 +42,3 @@ class TargetException : public ExceptionBase {
 
 } /* namespace exception */
 } /* namespace fuzzing */
-
-#endif

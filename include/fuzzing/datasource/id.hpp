@@ -1,5 +1,4 @@
-#ifndef FUZZING_DATASOURCE_ID_HPP
-#define FUZZING_DATASOURCE_ID_HPP
+#pragma once
 
 #include <stdio.h>
 #include <stdint.h>
@@ -51,5 +50,3 @@ using IDMap = std::map<const char*, uint64_t>;
 
 } /* namespace datasource */
 } /* namespace fuzzing */
-
-#endif

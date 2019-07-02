@@ -1,5 +1,4 @@
-#ifndef FUZZING_MEMORY_HPP
-#define FUZZING_MEMORY_HPP
+#pragma once
 
 #include <stdio.h>
 #include <optional>
@@ -64,5 +63,3 @@ void memory_test(const std::string& s)
 
 } /* namespace memory */
 } /* namespace fuzzing */
-
-#endif

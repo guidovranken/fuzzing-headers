@@ -1,5 +1,4 @@
-#ifndef FUZZING_DATASOURCE_DATASOURCE_HPP
-#define FUZZING_DATASOURCE_DATASOURCE_HPP
+#pragma once
 
 #include <fuzzing/exception.hpp>
 #include <fuzzing/types.hpp>
@@ -162,5 +161,3 @@ std::vector<uint8_t> Datasource::get(const size_t min, const size_t max, const u
 
 } /* namespace datasource */
 } /* namespace fuzzing */
-
-#endif

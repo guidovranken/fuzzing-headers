@@ -1,5 +1,4 @@
-#ifndef FUZZING_TEST_HPP
-#define FUZZING_TEST_HPP
+#pragma once
 
 #include <fuzzing/datasource/datasource.hpp>
 #include <fuzzing/test.hpp>
@@ -49,5 +48,3 @@ class Multitest {
 };
 
 } /* namespace fuzzing */
-
-#endif

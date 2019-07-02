@@ -1,5 +1,4 @@
-#ifndef FUZZING_TESTERS_SERIALIZE_JSON_HPP
-#define FUZZING_TESTERS_SERIALIZE_JSON_HPP
+#pragma once
 
 #include <fuzzing/datasource/datasource.hpp>
 #include <fuzzing/datasource/id.hpp>
@@ -636,5 +635,3 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
 } /* namespace serialize */
 } /* namespace testers */
 } /* namespace fuzzing */
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef FUZZING_TYPES_HPP
-#define FUZZING_TYPES_HPP
+#pragma once
 
 #include <cstdint>
 #include <cstdlib>
@@ -119,6 +118,3 @@ template <bool UseMSAN = false> using Data = Container<uint8_t, false, UseMSAN>;
 
 } /* namespace types */
 } /* namespace fuzzing */
-
-#endif
-

@@ -1,5 +1,4 @@
-#ifndef FUZZING_TESTERS_SERIALIZE_SERIALIZE_HPP
-#define FUZZING_TESTERS_SERIALIZE_SERIALIZE_HPP
+#pragma once
 
 #include <fuzzing/memory.hpp>
 #include <fuzzing/exception.hpp>
@@ -152,5 +151,3 @@ class DefaultSerializeTester : public SerializeTester<ObjectType, BinaryType> {
 } /* namespace serialize */
 } /* namespace testers */
 } /* namespace fuzzing */
-
-#endif
