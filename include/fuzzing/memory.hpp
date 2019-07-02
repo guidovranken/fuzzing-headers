@@ -12,6 +12,10 @@ namespace memory {
 extern "C" void *__asan_region_is_poisoned(const void *beg, size_t size);
 #endif
 
+#if MSAN == 1
+extern "C" void __msan_check_mem_is_initialized(const volatile void *x, size_t size);
+#endif
+
 void memory_test_asan(const void* data, const size_t size)
 {
     (void)data;
@@ -30,12 +34,7 @@ void memory_test_msan(const void* data, const size_t size)
     (void)size;
 
 #if MSAN == 1
-    FILE* fp = fopen("/dev/null", "wb");
-    if ( fp == nullptr ) {
-        abort();
-    }
-    fwrite(data, size, 1, fp);
-    fclose(fp);
+    __msan_check_mem_is_initialized(data, size);
 #endif
 }
 
