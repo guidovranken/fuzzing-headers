@@ -30,7 +30,7 @@ class JsonManipulator {
         virtual std::optional<ObjectType> StringToObject(const std::string& input) {
             (void)input;
 
-            return nullptr;
+            return std::nullopt;
         }
 
         virtual std::optional<std::string> ObjectToString(const ObjectType& input) {
