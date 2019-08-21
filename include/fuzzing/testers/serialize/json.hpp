@@ -505,7 +505,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
         }
 
         void op_ObjectConversion(datasource::Datasource& ds) {
-            const auto input = getReference(ds);
+            const auto& input = getReference(ds);
             if ( ds.Get<bool>( datasource::ID("JsonTester.op_ObjectConversion.Get<bool> (method choice)") ) == true ) {
                 testObjectConversion(input);
             } else {
