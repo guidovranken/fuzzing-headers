@@ -20,6 +20,10 @@ class NlohmannJsonManipulator : public fuzzing::testers::serialize::JsonManipula
             return input1 == input2;
         }
 
+        std::optional<bool> IsNotEqual(const nlohmann::json& input1, const nlohmann::json& input2) override {
+            return input1 != input2;
+        }
+
         std::optional<bool> IsGreaterThan(const nlohmann::json& input1, const nlohmann::json& input2) override {
             return input1 > input2;
         }

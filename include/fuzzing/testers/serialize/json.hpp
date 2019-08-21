@@ -47,6 +47,13 @@ class JsonManipulator {
             return {};
         }
 
+        virtual std::optional<bool> IsNotEqual(const ObjectType& input1, const ObjectType& input2) {
+            (void)input1;
+            (void)input2;
+
+            return {};
+        }
+
         virtual std::optional<bool> IsGreaterThan(const ObjectType& input1, const ObjectType& input2) {
             (void)input1;
             (void)input2;
@@ -375,13 +382,14 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             const auto& input2 = getReference(ds);
 
             const auto EQ = jsonManipulator->IsEqual(input1, input2);
+            const auto NEQ = jsonManipulator->IsNotEqual(input1, input2);
             const auto GT = jsonManipulator->IsGreaterThan(input1, input2);
             const auto LT = jsonManipulator->IsLessThan(input1, input2);
             const auto EQGT = jsonManipulator->IsEqualOrGreaterThan(input1, input2);
             const auto EQLT = jsonManipulator->IsEqualOrLessThan(input1, input2);
 
 
-            if ( fuzzing::truth::isValid( {EQ, GT, LT, EQGT, EQLT} ) == false ) {
+            if ( fuzzing::truth::isValid( {EQ, NEQ, GT, LT, EQGT, EQLT} ) == false ) {
                 throw TargetException("Incongruent truth values");
             }
         }

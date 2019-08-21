@@ -33,6 +33,10 @@ class RapidjsonJsonManipulator : public fuzzing::testers::serialize::JsonManipul
             return input1 == input2;
         }
 
+        std::optional<bool> IsNotEqual(const rapidjson::Value& input1, const rapidjson::Value& input2) override {
+            return input1 != input2;
+        }
+
         std::optional<bool> IsObject(const rapidjson::Value& input) override {
             return input.IsObject();
         }
