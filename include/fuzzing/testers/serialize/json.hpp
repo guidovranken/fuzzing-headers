@@ -218,7 +218,7 @@ class JsonManipulator {
         }
 };
 
-template <class ObjectType>
+template <class ObjectType, bool WithConversions = true>
 class JsonTester : public SerializeTester<ObjectType, std::string> {
     public:
         using global_TargetException = exception::TargetException;
@@ -254,7 +254,8 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             return std::string(res->data(), res->data() + strlen(res->c_str()));
         }
 
-        void testStringConversion(const std::string& input) const {
+        template<bool withConversions = WithConversions> typename std::enable_if<withConversions, void>::type
+        testStringConversion(const std::string& input) const {
             const auto binaryToObject2XWrapper = [this](const std::string& input) -> std::optional<std::pair<ObjectType, ObjectType>> {
                 return this->binaryToObject2X(
                         input,
@@ -265,7 +266,11 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             testConversion<std::string, decltype(binaryToObject2XWrapper)>(input, binaryToObject2XWrapper);
         }
 
-        void testStringConversionCStr(const std::string& input) {
+        template<bool withConversions = WithConversions> typename std::enable_if<!withConversions, void>::type
+        testStringConversion(const std::string& input) const { }
+
+        template<bool withConversions = WithConversions> typename std::enable_if<withConversions, void>::type
+        testStringConversionCStr(const std::string& input) {
             const auto binaryToObject2XWrapper = [this](const std::string& input) -> std::optional<std::pair<ObjectType, ObjectType>> {
                 return this->binaryToObject2X(
                         input,
@@ -276,7 +281,11 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             testConversion<std::string, decltype(binaryToObject2XWrapper)>(input, binaryToObject2XWrapper);
         }
 
-        void testObjectConversion(const ObjectType& input) const {
+        template<bool withConversions = WithConversions> typename std::enable_if<!withConversions, void>::type
+        testStringConversionCStr(const std::string& input) { }
+
+        template<bool withConversions = WithConversions> typename std::enable_if<withConversions, void>::type
+        testObjectConversion(const ObjectType& input) const {
             const auto ObjectToBinary2XWrapper = [this](const ObjectType& input) -> std::optional<std::pair<std::string, std::string>> {
                 return this->objectToBinary2X(
                         input,
@@ -287,7 +296,11 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             testConversion<ObjectType, decltype(ObjectToBinary2XWrapper)>(input, ObjectToBinary2XWrapper);
         }
 
-        void testObjectConversionCStr(const ObjectType& input) {
+        template<bool withConversions = WithConversions> typename std::enable_if<!withConversions, void>::type
+        testObjectConversion(const ObjectType& input) const { }
+
+        template<bool withConversions = WithConversions> typename std::enable_if<withConversions, void>::type
+        testObjectConversionCStr(const ObjectType& input) {
             const auto ObjectToBinary2XWrapper = [this](const ObjectType& input) -> std::optional<std::pair<std::string, std::string>> {
                 return this->objectToBinary2X(
                         input,
@@ -297,6 +310,9 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
 
             testConversion<ObjectType, decltype(ObjectToBinary2XWrapper)>(input, ObjectToBinary2XWrapper);
         }
+
+        template<bool withConversions = WithConversions> typename std::enable_if<!withConversions, void>::type
+        testObjectConversionCStr(const ObjectType& input) { }
 
         ObjectType& getReference(datasource::Datasource& ds) {
             const auto slotIdx = ds.GetChoice( datasource::ID("JsonTester.getReference.GetChoice (slot selection)") ) % 2;
