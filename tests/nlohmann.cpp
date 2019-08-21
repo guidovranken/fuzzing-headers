@@ -163,9 +163,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     try {
         jsonTester->Test(ds);
     } catch ( fuzzing::datasource::Datasource::OutOfData ) {
-    } catch ( nlohmann::detail::parse_error ) {
-    } catch ( nlohmann::detail::type_error ) {
-    } catch ( ... ) { }
+    } catch ( nlohmann::detail::exception ) {
+    }
 
 
     return 0;

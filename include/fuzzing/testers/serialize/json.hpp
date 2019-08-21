@@ -364,8 +364,9 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             const auto EQGT = jsonManipulator->IsEqualOrGreaterThan(input1, input2);
             const auto EQLT = jsonManipulator->IsEqualOrLessThan(input1, input2);
 
+
             if ( fuzzing::truth::isValid( {EQ, GT, LT, EQGT, EQLT} ) == false ) {
-                TargetException("Incongruent truth values");
+                throw TargetException("Incongruent truth values");
             }
         }
 
@@ -384,13 +385,13 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             }
 
             if ( input != *copy ) {
-                TargetException("Copy mismatch (1)");
+                throw TargetException("Copy mismatch (1)");
             }
 
             const auto isEQ = jsonManipulator->IsEqual(input, *copy);
             if ( isEQ ) {
                 if ( !(*isEQ) ) {
-                    TargetException("Copy mismatch (2)");
+                    throw TargetException("Copy mismatch (2)");
                 }
             }
         }
@@ -422,7 +423,7 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
 
             const auto hasMember = jsonManipulator->HasMember(dest, key);
             if ( hasMember && *hasMember == false ) {
-                TargetException("Expected key");
+                throw TargetException("Expected key");
             }
         }
 
@@ -448,12 +449,12 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             const auto isNumber = jsonManipulator->IsNumber(dest);
 
             if ( isNumber && *isNumber == false ) {
-                TargetException("Expected type to be number");
+                throw TargetException("Expected type to be number");
             }
 
             const auto res = jsonManipulator->GetDouble(dest);
             if ( res && *res != val ) {
-                TargetException("SetDouble mismatch");
+                throw TargetException("SetDouble mismatch");
             }
 
             testObjectConversion(dest);
@@ -471,12 +472,12 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             const auto isNumber = jsonManipulator->IsNumber(dest);
 
             if ( isNumber && *isNumber == false ) {
-                TargetException("Expected type to be number");
+                throw TargetException("Expected type to be number");
             }
 
             const auto res = jsonManipulator->GetInt32(dest);
             if ( res && *res != val ) {
-                TargetException("SetInt32 mismatch");
+                throw TargetException("SetInt32 mismatch");
             }
 
             testObjectConversion(dest);
@@ -493,12 +494,12 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
             const auto isNumber = jsonManipulator->IsNumber(dest);
 
             if ( isNumber && *isNumber == false ) {
-                TargetException("Expected type to be number");
+                throw TargetException("Expected type to be number");
             }
 
             const auto res = jsonManipulator->GetInt64(dest);
             if ( res && *res != val ) {
-                TargetException("SetInt64 mismatch");
+                throw TargetException("SetInt64 mismatch");
             }
             testObjectConversion(dest);
         }
