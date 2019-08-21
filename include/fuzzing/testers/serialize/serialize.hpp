@@ -5,6 +5,7 @@
 #include <fuzzing/datasource/datasource.hpp>
 #include <fuzzing/test.hpp>
 #include <functional>
+#include <iostream>
 
 namespace fuzzing {
 namespace testers {
