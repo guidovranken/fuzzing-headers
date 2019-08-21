@@ -516,7 +516,35 @@ class JsonTester : public SerializeTester<ObjectType, std::string> {
         void op_Swap(datasource::Datasource& ds) {
             auto& input1 = getReference(ds);
             auto& input2 = getReference(ds);
-            jsonManipulator->Swap(input1, input2);
+
+            const auto input1Copy = jsonManipulator->Copy(input1);
+            const auto input2Copy = jsonManipulator->Copy(input2);
+
+            if ( jsonManipulator->Swap(input1, input2) == false ) {
+                return;
+            }
+
+            bool badSwap = false;
+
+            if ( input1Copy ) {
+                const auto EQ = jsonManipulator->IsEqual(input2, *input1Copy);
+
+                if ( EQ && *EQ == false ) {
+                    badSwap = true;
+                }
+            }
+
+            if ( badSwap == false && input2Copy ) {
+                const auto EQ = jsonManipulator->IsEqual(input1, *input2Copy);
+
+                if ( EQ && *EQ == false ) {
+                    badSwap = true;
+                }
+            }
+
+            if ( badSwap == true ) {
+                throw TargetException("Unexpected post-swap values");
+            }
         }
 
         ObjectType& set(ObjectType& input, datasource::Datasource& ds) {
